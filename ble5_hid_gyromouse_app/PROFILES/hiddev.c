@@ -192,7 +192,7 @@ typedef struct
  */
 
 // Entity ID globally used to check for source and/or destination of messages.
-static ICall_EntityID selfEntity;
+ICall_EntityID selfEntity;
 
 // Event globally used to post local events and pend on system and
 // local events.
@@ -211,7 +211,7 @@ Task_Struct hidDeviceTask;
 Char hidDeviceTaskStack[HIDDEVICE_TASK_STACK_SIZE];
 
 // GAP State
-gaprole_States_t hidDevGapState = GAPROLE_INIT;
+static gaprole_States_t hidDevGapState = GAPROLE_INIT;
 
 // TRUE if connection is secure
 static uint8_t hidDevConnSecure = FALSE;

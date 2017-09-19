@@ -1,7 +1,7 @@
 eclipse.preferences.version=1
 encoding//Application/gyro.c=UTF-8
 encoding//Application/gyro.h=UTF-8
-encoding//Application/mpu6500.h=UTF-8
+encoding//Application/mpu9150.h=UTF-8
 encoding//FlashROM_StackLibrary/Application/subdir_rules.mk=UTF-8
 encoding//FlashROM_StackLibrary/Application/subdir_vars.mk=UTF-8
 encoding//FlashROM_StackLibrary/Drivers/ECC/subdir_rules.mk=UTF-8

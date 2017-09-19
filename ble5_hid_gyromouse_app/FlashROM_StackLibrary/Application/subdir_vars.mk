@@ -9,36 +9,48 @@ C_SRCS += \
 ../Application/board_key.c \
 ../Application/gyro.c \
 ../Application/hidemukbd.c \
+../Application/mi2c.c \
+../Application/mpu9150.c \
 ../Application/util.c 
 
 C_DEPS += \
 ./Application/board_key.d \
 ./Application/gyro.d \
 ./Application/hidemukbd.d \
+./Application/mi2c.d \
+./Application/mpu9150.d \
 ./Application/util.d 
 
 OBJS += \
 ./Application/board_key.obj \
 ./Application/gyro.obj \
 ./Application/hidemukbd.obj \
+./Application/mi2c.obj \
+./Application/mpu9150.obj \
 ./Application/util.obj 
 
 OBJS__QUOTED += \
 "Application\board_key.obj" \
 "Application\gyro.obj" \
 "Application\hidemukbd.obj" \
+"Application\mi2c.obj" \
+"Application\mpu9150.obj" \
 "Application\util.obj" 
 
 C_DEPS__QUOTED += \
 "Application\board_key.d" \
 "Application\gyro.d" \
 "Application\hidemukbd.d" \
+"Application\mi2c.d" \
+"Application\mpu9150.d" \
 "Application\util.d" 
 
 C_SRCS__QUOTED += \
 "../Application/board_key.c" \
 "../Application/gyro.c" \
 "../Application/hidemukbd.c" \
+"../Application/mi2c.c" \
+"../Application/mpu9150.c" \
 "../Application/util.c" 
 
 

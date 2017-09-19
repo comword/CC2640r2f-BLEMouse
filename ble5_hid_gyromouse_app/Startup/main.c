@@ -53,6 +53,8 @@
 #include <ti/drivers/Power.h>
 #include <ti/drivers/power/PowerCC26XX.h>
 #include <ti/sysbios/BIOS.h>
+#include <ti/drivers/UART.h>
+#include <ti/drivers/GPIO.h>
 
 #include <icall.h>
 #include "hal_assert.h"
@@ -69,6 +71,7 @@
 #ifndef USE_DEFAULT_USER_CFG
 
 #include "ble_user_config.h"
+#include <xdc/runtime/System.h>
 
 // BLE user defined configuration
 #ifdef ICALL_JT
@@ -104,12 +107,14 @@ bleUserCfg_t user0Cfg = BLE_USER_CFG;
 /*******************************************************************************
  * GLOBAL VARIABLES
  */
-
+UART_Handle uart;
 /*******************************************************************************
  * EXTERNS
  */
 
 extern void AssertHandler(uint8 assertCause, uint8 assertSubcause);
+
+void uartdummy(UART_Handle handle, void *buf, size_t count);
 
 extern Display_Handle dispHandle;
 
@@ -132,9 +137,28 @@ int main()
 {
   /* Register Application callback to trap asserts raised in the Stack */
   RegisterAssertCback(AssertHandler);
+  //PIN_init(BoardGpioInitTable);
+  //char input;
+  Board_initGeneral();
+  GPIO_init();
+  UART_init();
+  const char  echoPrompt[] = "Echoing characters:\n";
+  UART_Params uartParams;
+  UART_Params_init(&uartParams);
+  uartParams.writeDataMode = UART_DATA_BINARY;
+  uartParams.readDataMode = UART_DATA_BINARY;
+  uartParams.readReturnMode = UART_RETURN_FULL;
+  uartParams.writeMode = UART_MODE_CALLBACK;
+  uartParams.writeCallback = uartdummy;
+  uartParams.readEcho = UART_ECHO_OFF;
+  uartParams.baudRate = 115200;
 
-  PIN_init(BoardGpioInitTable);
+  uart = UART_open(Board_UART0, &uartParams);
+  if (uart == NULL) {
+      while (1);
+  }
 
+  UART_write(uart, echoPrompt, sizeof(echoPrompt));
 #ifndef POWER_SAVING
   /* Set constraints for Standby, powerdown and idle mode */
   Power_setConstraint  (PowerCC26XX_SB_DISALLOW);
@@ -146,6 +170,7 @@ int main()
   user0Cfg.appServiceInfo->timerTickPeriod = Clock_tickPeriod;
   user0Cfg.appServiceInfo->timerMaxMillisecond  = ICall_getMaxMSecs();
 #endif  /* ICALL_JT */
+
   /* Initialize ICall module */
   ICall_init();
 
@@ -160,8 +185,6 @@ int main()
 
   /* Kick off application - Priority 2 */
   HidEmuKbd_createTask();
-
-  Gyro_createTask();/*Priority 1*/
 
   /* enable interrupts and start SYS/BIOS */
   BIOS_start();
@@ -211,7 +234,7 @@ void AssertHandler(uint8 assertCause, uint8 assertSubcause)
   // Open the display if the app has not already done so
   if ( !dispHandle )
   {
-    dispHandle = Display_open(Display_Type_LCD, NULL);
+    dispHandle = Display_open(Display_Type_ALL, NULL);
   }
 
   Display_print0(dispHandle, 0, 0, ">>>STACK ASSERT");
@@ -274,6 +297,10 @@ void smallErrorHook(Error_Block *eb)
   for (;;);
 }
 
+void uartdummy(UART_Handle handle, void *buf, size_t count)
+{
+
+}
 
 /*******************************************************************************
  */

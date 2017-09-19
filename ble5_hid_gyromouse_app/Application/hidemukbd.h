@@ -56,7 +56,6 @@ extern "C"
 /*********************************************************************
  * INCLUDES
  */
-#include <ti/sysbios/knl/Queue.h>
 
 /*********************************************************************
  * CONSTANTS
@@ -78,8 +77,6 @@ extern "C"
  * Task creation function for the HID emulated keyboard.
  */
 extern void HidEmuKbd_createTask(void);
-//extern ICall_SyncHandle syncEvent;
-//extern Queue_Handle appMsgQueue;
 
 /*********************************************************************
 *********************************************************************/

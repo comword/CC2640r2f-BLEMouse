@@ -13,6 +13,8 @@ ORDERED_OBJS += \
 "./Application/board_key.obj" \
 "./Application/gyro.obj" \
 "./Application/hidemukbd.obj" \
+"./Application/mi2c.obj" \
+"./Application/mpu9150.obj" \
 "./Application/util.obj" \
 "./Drivers/ECC/ECCROMCC26XX.obj" \
 "./Drivers/RF/RFCC26XX_singleMode.obj" \
@@ -38,11 +40,11 @@ $(GEN_CMDS__FLAG) \
 -l"E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/kernel/tirtos/packages/ti/dpl/lib/dpl_cc26x0r2.aem3" \
 -l"E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/drivers/lib/drivers_cc26x0r2.aem3" \
 -l"E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/display/lib/display.aem3" \
+-l"E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/ble5stack/common/cc26xx/ccs/cc26xx_app.cmd" \
+-llibc.a \
 -l"E:/ccs_work/ble5_hid_gyromouse_stack_library/FlashROM_Library/ble_r2.symbols" \
 -l"E:/ccs_work/ble5_hid_gyromouse_stack_library/FlashROM_Library/lib_linker.cmd" \
 -l"E:/ccs_work/ble5_hid_gyromouse_stack_library/FlashROM_Library/ble5_hid_gyromouse_stack_library.lib" \
--l"E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/ble5stack/common/cc26xx/ccs/cc26xx_app.cmd" \
--llibc.a \
 
 -include ../makefile.init
 
@@ -188,7 +190,7 @@ dependents:
 ble5_hid_gyromouse_app.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS) E:/ccs_work/ble5_hid_gyromouse_stack_library/FlashROM_Library/ble5_hid_gyromouse_stack_library.lib
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Linker'
-	"E:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.1.LTS/bin/armcl" --cmd_file="E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/ble5stack/config/build_components.opt" --cmd_file="E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/ble5stack/config/factory_config.opt" --cmd_file="E:/ccs_work/ble5_hid_gyromouse_stack_library/TOOLS/build_config.opt"  -mv7M3 --code_state=16 -me -O4 --opt_for_speed=0 --define=BOARD_DISPLAY_USE_LCD=0 --define=BOARD_DISPLAY_USE_UART=1 --define=BOARD_DISPLAY_USE_UART_ANSI=1 --define=CC2640R2_LAUNCHXL --define=CC26XX --define=CC26XX_R2 --define=DEVICE_FAMILY=cc26x0r2 --define=xDisplay_DISABLE_ALL --define=HEAPMGR_SIZE=0 --define=ICALL_EVENTS --define=ICALL_JT --define=ICALL_LITE --define=ICALL_MAX_NUM_ENTITIES=7 --define=ICALL_MAX_NUM_TASKS=5 --define=ICALL_STACK0_ADDR --define=POWER_SAVING --define=STACK_LIBRARY --define=USE_CORE_SDK --define=USE_ICALL --define=xxdc_runtime_Assert_DISABLE_ALL --define=xxdc_runtime_Log_DISABLE_ALL -g --c99 --gcc --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --abi=eabi -z -m"ble5_hid_gyromouse_app.map" --heap_size=0 --stack_size=256 -i"E:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.1.LTS/lib" -i"E:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.1.LTS/include" --reread_libs --define=CC26X0ROM=2 --diag_suppress=16002-D --diag_suppress=10247-D --diag_suppress=10325-D --diag_suppress=10229-D --diag_wrap=off --display_error_number --warn_sections --xml_link_info="ble5_hid_gyromouse_app_linkInfo.xml" --rom_model -o "ble5_hid_gyromouse_app.out" $(ORDERED_OBJS)
+	"E:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.1.LTS/bin/armcl" --cmd_file="E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/ble5stack/config/build_components.opt" --cmd_file="E:/ti/simplelink_cc2640r2_sdk_1_35_00_33/source/ti/ble5stack/config/factory_config.opt" --cmd_file="E:/ccs_work/ble5_hid_gyromouse_stack_library/TOOLS/build_config.opt"  -mv7M3 --code_state=16 -me -O4 --opt_for_speed=0 --define=NPI_USE_UART --define=BOARD_DISPLAY_USE_LCD=0 --define=BOARD_DISPLAY_USE_UART=1 --define=BOARD_DISPLAY_USE_UART_ANSI=1 --define=CC2640R2_LAUNCHXL --define=CC26XX --define=CC26XX_R2 --define=DEVICE_FAMILY=cc26x0r2 --define=Display_DISABLE_ALL --define=HEAPMGR_SIZE=0 --define=ICALL_EVENTS --define=ICALL_JT --define=ICALL_LITE --define=ICALL_MAX_NUM_ENTITIES=6 --define=ICALL_MAX_NUM_TASKS=6 --define=ICALL_STACK0_ADDR --define=POWER_SAVING --define=STACK_LIBRARY --define=USE_CORE_SDK --define=USE_ICALL --define=xdc_runtime_Assert_DISABLE_ALL --define=xdc_runtime_Log_DISABLE_ALL -g --c99 --gcc --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --abi=eabi -z -m"ble5_hid_gyromouse_app.map" --heap_size=0 --stack_size=256 -i"E:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.1.LTS/lib" -i"E:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.1.LTS/include" --reread_libs --define=CC26X0ROM=2 --diag_suppress=16002-D --diag_suppress=10247-D --diag_suppress=10325-D --diag_suppress=10229-D --diag_wrap=off --display_error_number --warn_sections --xml_link_info="ble5_hid_gyromouse_app_linkInfo.xml" --rom_model -o "ble5_hid_gyromouse_app.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
@@ -204,8 +206,8 @@ ble5_hid_gyromouse_app.hex: $(EXE_OUTPUTS)
 clean:
 	-$(RM) $(GEN_CMDS__QUOTED)$(GEN_MISC_FILES__QUOTED)$(BIN_OUTPUTS__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)$(GEN_OPTS__QUOTED)
 	-$(RMDIR) $(GEN_MISC_DIRS__QUOTED)
-	-$(RM) "Application\board_key.obj" "Application\gyro.obj" "Application\hidemukbd.obj" "Application\util.obj" "Drivers\ECC\ECCROMCC26XX.obj" "Drivers\RF\RFCC26XX_singleMode.obj" "Drivers\TRNG\TRNGCC26XX.obj" "ICall\icall.obj" "ICall\icall_cc2650.obj" "ICall\icall_user_config.obj" "ICallBLE\ble_user_config.obj" "ICallBLE\icall_api_lite.obj" "PROFILES\battservice.obj" "PROFILES\devinfoservice.obj" "PROFILES\gatt_uuid.obj" "PROFILES\gattservapp_util.obj" "PROFILES\hiddev.obj" "PROFILES\hidkbdservice.obj" "PROFILES\peripheral.obj" "PROFILES\scanparamservice.obj" "Startup\board.obj" "Startup\ccfg_app_ble.obj" "Startup\main.obj" 
-	-$(RM) "Application\board_key.d" "Application\gyro.d" "Application\hidemukbd.d" "Application\util.d" "Drivers\ECC\ECCROMCC26XX.d" "Drivers\RF\RFCC26XX_singleMode.d" "Drivers\TRNG\TRNGCC26XX.d" "ICall\icall.d" "ICall\icall_cc2650.d" "ICall\icall_user_config.d" "ICallBLE\ble_user_config.d" "ICallBLE\icall_api_lite.d" "PROFILES\battservice.d" "PROFILES\devinfoservice.d" "PROFILES\gatt_uuid.d" "PROFILES\gattservapp_util.d" "PROFILES\hiddev.d" "PROFILES\hidkbdservice.d" "PROFILES\peripheral.d" "PROFILES\scanparamservice.d" "Startup\board.d" "Startup\ccfg_app_ble.d" "Startup\main.d" 
+	-$(RM) "Application\board_key.obj" "Application\gyro.obj" "Application\hidemukbd.obj" "Application\mi2c.obj" "Application\mpu9150.obj" "Application\util.obj" "Drivers\ECC\ECCROMCC26XX.obj" "Drivers\RF\RFCC26XX_singleMode.obj" "Drivers\TRNG\TRNGCC26XX.obj" "ICall\icall.obj" "ICall\icall_cc2650.obj" "ICall\icall_user_config.obj" "ICallBLE\ble_user_config.obj" "ICallBLE\icall_api_lite.obj" "PROFILES\battservice.obj" "PROFILES\devinfoservice.obj" "PROFILES\gatt_uuid.obj" "PROFILES\gattservapp_util.obj" "PROFILES\hiddev.obj" "PROFILES\hidkbdservice.obj" "PROFILES\peripheral.obj" "PROFILES\scanparamservice.obj" "Startup\board.obj" "Startup\ccfg_app_ble.obj" "Startup\main.obj" 
+	-$(RM) "Application\board_key.d" "Application\gyro.d" "Application\hidemukbd.d" "Application\mi2c.d" "Application\mpu9150.d" "Application\util.d" "Drivers\ECC\ECCROMCC26XX.d" "Drivers\RF\RFCC26XX_singleMode.d" "Drivers\TRNG\TRNGCC26XX.d" "ICall\icall.d" "ICall\icall_cc2650.d" "ICall\icall_user_config.d" "ICallBLE\ble_user_config.d" "ICallBLE\icall_api_lite.d" "PROFILES\battservice.d" "PROFILES\devinfoservice.d" "PROFILES\gatt_uuid.d" "PROFILES\gattservapp_util.d" "PROFILES\hiddev.d" "PROFILES\hidkbdservice.d" "PROFILES\peripheral.d" "PROFILES\scanparamservice.d" "Startup\board.d" "Startup\ccfg_app_ble.d" "Startup\main.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

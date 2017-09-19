@@ -136,8 +136,8 @@
 #define DEFAULT_PASSCODE                      0
 
 // Default GAP pairing mode
-#define DEFAULT_PAIRING_MODE                  GAPBOND_PAIRING_MODE_WAIT_FOR_REQ
-
+//#define DEFAULT_PAIRING_MODE                  GAPBOND_PAIRING_MODE_WAIT_FOR_REQ
+#define DEFAULT_PAIRING_MODE  GAPBOND_PAIRING_MODE_INITIATE
 // Default MITM mode (TRUE to require passcode or OOB when pairing)
 #define DEFAULT_MITM_MODE                     TRUE
 
@@ -145,20 +145,10 @@
 #define DEFAULT_BONDING_MODE                  TRUE
 
 // Default GAP bonding I/O capabilities
-#define DEFAULT_IO_CAPABILITIES               GAPBOND_IO_CAP_DISPLAY_ONLY
+#define DEFAULT_IO_CAPABILITIES               GAPBOND_IO_CAP_NO_INPUT_NO_OUTPUT
 
 // Battery level is critical when it is less than this %
 #define DEFAULT_BATT_CRITICAL_LEVEL           6
-
-// Key bindings, can be modified to any HID value.
-#define CC2650_LAUNCHXL
-//#define KEY_UP_HID_BINDING                    HID_KEYBOARD_UP_ARROW
-//#define KEY_DOWN_HID_BINDING                  HID_KEYBOARD_DOWN_ARROW
-//#define KEY_SELECT_HID_BINDING                MOUSE_BUTTON_1
-//#define USE_HID_MOUSE
-//#endif // !CC2650_LAUNCHXL
-//#define KEY_LEFT_HID_BINDING                  HID_KEYBOARD_LEFT_ARROW
-//#define KEY_RIGHT_HID_BINDING                 HID_KEYBOARD_RIGHT_ARROW
 
 // Task configuration
 #define HIDEMUKBD_TASK_PRIORITY               2
@@ -172,10 +162,9 @@
 // Task Events
 #define HIDEMUKBD_ICALL_EVT                   ICALL_MSG_EVENT_ID // Event_Id_31
 #define HIDEMUKBD_QUEUE_EVT                   UTIL_QUEUE_EVENT_ID // Event_Id_30
-#define GR_STATE_CHANGE_EVT                   Event_Id_05
-
+#define GR_STATE_CHANGE_EVT                    Event_Id_10
 #define HIDEMUKBD_ALL_EVENTS                  (HIDEMUKBD_ICALL_EVT | \
-                                               HIDEMUKBD_QUEUE_EVT | GR_STATE_CHANGE_EVT)
+                                               HIDEMUKBD_QUEUE_EVT)
 
 /*********************************************************************
  * TYPEDEFS
@@ -186,12 +175,6 @@ typedef struct
 {
   appEvtHdr_t hdr; // Event header
 } hidEmuKbdEvt_t;
-
-typedef struct
-{
-  appEvtHdr_t hdr; // Event header
-  uint8_t x,y;
-} mousepos_t;
 
 /*********************************************************************
  * GLOBAL VARIABLES
@@ -282,10 +265,6 @@ static hidDevCfg_t hidEmuKbdCfg =
   HID_FLAGS_REMOTE_WAKE               // HID feature flags
 };
 
-//#ifdef USE_HID_MOUSE
-// TRUE if boot mouse enabled
-//static uint8_t hidBootMouseEnabled = TRUE;
-//#endif // USE_HID_MOUSE
 
 /*********************************************************************
  * LOCAL FUNCTIONS
@@ -305,9 +284,7 @@ static void HidEmuKbd_handleKeys(uint8_t shift, uint8_t keys);
 
 // HID reports.
 //static void HidEmuKbd_sendReport(uint8_t keycode);
-//#ifdef USE_HID_MOUSE
 static void HidEmuKbd_sendMouseReport(uint8_t buttons);
-//#endif // USE_HID_MOUSE
 static uint8_t HidEmuKbd_receiveReport(uint8_t len, uint8_t *pData);
 static uint8_t HidEmuKbd_reportCB(uint8_t id, uint8_t type, uint16_t uuid,
                                   uint8_t oper, uint16_t *pLen, uint8_t *pData);
@@ -373,8 +350,8 @@ void HidEmuKbd_init(void)
   ICall_registerApp(&selfEntity, &syncEvent);
 
   // Hard code the DB Address till CC2650 board gets its own IEEE address
-  //uint8 bdAddress[B_ADDR_LEN] = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x5A };
-  //HCI_EXT_SetBDADDRCmd(bdAddress);
+  uint8 bdAddress[B_ADDR_LEN] = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x5A };
+  HCI_EXT_SetBDADDRCmd(bdAddress);
 
   // Set device's Sleep Clock Accuracy
   //HCI_EXT_SetSCACmd(40);
@@ -446,6 +423,7 @@ void HidEmuKbd_init(void)
     uint8_t mitm = DEFAULT_MITM_MODE;
     uint8_t ioCap = DEFAULT_IO_CAPABILITIES;
     uint8_t bonding = DEFAULT_BONDING_MODE;
+    uint8_t autoSyncWhitelist = TRUE;
 
     GAPBondMgr_SetParameter(GAPBOND_DEFAULT_PASSCODE, sizeof(uint32_t),
                             &passkey);
@@ -453,6 +431,7 @@ void HidEmuKbd_init(void)
     GAPBondMgr_SetParameter(GAPBOND_MITM_PROTECTION, sizeof(uint8_t), &mitm);
     GAPBondMgr_SetParameter(GAPBOND_IO_CAPABILITIES, sizeof(uint8_t), &ioCap);
     GAPBondMgr_SetParameter(GAPBOND_BONDING_ENABLED, sizeof(uint8_t), &bonding);
+    GAPBondMgr_SetParameter(GAPBOND_AUTO_SYNC_WL, sizeof ( uint8 ), &autoSyncWhitelist );
   }
 
   // Setup Battery Characteristic Values
@@ -473,6 +452,8 @@ void HidEmuKbd_init(void)
 
   // Initialize keys on SmartRF06EB.
   Board_initKeys(HidEmuKbd_keyPressHandler);
+
+  Gyro_init();
 
   // Register with GAP for HCI/Host messages
   GAP_RegisterForMsgs(selfEntity);
@@ -548,6 +529,10 @@ void HidEmuKbd_taskFxn(UArg a0, UArg a1)
           }
         }
       }
+      if (events & GR_STATE_CHANGE_EVT)
+      {
+
+      }
     }
   }
 }
@@ -571,6 +556,7 @@ static void HidEmuKbd_processStackMsg(ICall_Hdr *pMsg)
 
     case HCI_GAP_EVENT_EVENT:
       {
+
         // Process HCI message
         switch(pMsg->status)
         {
@@ -620,12 +606,6 @@ static void HidEmuKbd_processStackMsg(ICall_Hdr *pMsg)
 
             }
             break;
-          case HCI_BLE_CONNECTION_COMPLETE_EVENT:
-          // Process HCI Command Complete Event
-          {
-              set_gyro_work(1);
-          }
-          break;
 
           default:
             break;
@@ -696,24 +676,20 @@ static void HidEmuKbd_keyPressHandler(uint8_t keys)
  *
  * @param   shift - true if in shift/alt.
  * @param   keys - bit field for key events. Valid entries:
+ *                 KEY_UP
+ *                 KEY_RIGHT
  *
  * @return  none
  */
 static void HidEmuKbd_handleKeys(uint8_t shift, uint8_t keys)
 {
   (void)shift;  // Intentionally unreferenced parameter
-  if (keys & KEY_LEFT)
-    {
-      HidEmuKbd_sendMouseReport(HID_MOUSE_BUTTON_LEFT);
-      HidEmuKbd_sendMouseReport(MOUSE_BUTTON_NONE);
-    }
+  HidEmuKbd_sendMouseReport(MOUSE_BUTTON_NONE);
 
-    if (keys & KEY_RIGHT)
-    {
-        HidEmuKbd_sendMouseReport(HID_MOUSE_BUTTON_RIGHT);
-         HidEmuKbd_sendMouseReport(MOUSE_BUTTON_NONE);
-    }
-
+  // Key Release.
+  // NB: releasing a key press will not propagate a signal to this function,
+  // so a "key release" is reported immediately afterwards here.
+  HidEmuKbd_sendMouseReport(MOUSE_BUTTON_NONE);
 }
 
 /*********************************************************************
@@ -725,24 +701,7 @@ static void HidEmuKbd_handleKeys(uint8_t shift, uint8_t keys)
  *
  * @return  none
  */
-/*static void HidEmuKbd_sendReport(uint8_t keycode)
-{
-  uint8_t buf[HID_KEYBOARD_IN_RPT_LEN];
 
-  buf[0] = 0;         // Modifier keys
-  buf[1] = 0;         // Reserved
-  buf[2] = keycode;   // Keycode 1
-  buf[3] = 0;         // Keycode 2
-  buf[4] = 0;         // Keycode 3
-  buf[5] = 0;         // Keycode 4
-  buf[6] = 0;         // Keycode 5
-  buf[7] = 0;         // Keycode 6
-
-  HidDev_Report(HID_RPT_ID_KEY_IN, HID_REPORT_TYPE_INPUT,
-                HID_KEYBOARD_IN_RPT_LEN, buf);
-}*/
-
-//#ifdef USE_HID_MOUSE
 /*********************************************************************
  * @fn      HidEmuKbd_sendMouseReport
  *
@@ -757,7 +716,7 @@ static void HidEmuKbd_sendMouseReport(uint8_t buttons)
   uint8_t buf[HID_MOUSE_IN_RPT_LEN];
 
   buf[0] = buttons;   // Buttons
-  buf[1] = 10;         // X
+  buf[1] = 0;         // X
   buf[2] = 0;         // Y
   buf[3] = 0;         // Wheel
   buf[4] = 0;         // AC Pan
@@ -765,7 +724,6 @@ static void HidEmuKbd_sendMouseReport(uint8_t buttons)
   HidDev_Report(HID_RPT_ID_MOUSE_IN, HID_REPORT_TYPE_INPUT,
                 HID_MOUSE_IN_RPT_LEN, buf);
 }
-//#endif // USE_HID_MOUSE
 
 /*********************************************************************
  * @fn      HidEmuKbd_receiveReport
@@ -841,6 +799,7 @@ static uint8_t HidEmuKbd_reportCB(uint8_t id, uint8_t type, uint16_t uuid,
       *pLen = len;
     }
   }
+
   return status;
 }
 

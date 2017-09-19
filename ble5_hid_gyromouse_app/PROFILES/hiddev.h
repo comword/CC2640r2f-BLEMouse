@@ -327,6 +327,7 @@ typedef struct
   hidDevPasscodeCB_t  passcodeCB;
 } hidDevCB_t;
 
+
 /*********************************************************************
  * @fn      HidDev_createTask
  *
