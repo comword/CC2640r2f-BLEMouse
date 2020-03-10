@@ -1,0 +1,1265 @@
+ARM GAS  /tmp/ccUnFRIg.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"Sensor.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.inv_sensor_str,"ax",%progbits
+  18              		.align	1
+  19              		.global	inv_sensor_str
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  23              		.fpu fpv4-sp-d16
+  25              	inv_sensor_str:
+  26              	.LFB2:
+  27              		.file 1 "Drivers/Invn/Devices/Sensor.c"
+   1:Drivers/Invn/Devices/Sensor.c **** /*
+   2:Drivers/Invn/Devices/Sensor.c ****  * ________________________________________________________________________________________________
+   3:Drivers/Invn/Devices/Sensor.c ****  * Copyright (c) 2015-2015 InvenSense Inc. All rights reserved.
+   4:Drivers/Invn/Devices/Sensor.c ****  *
+   5:Drivers/Invn/Devices/Sensor.c ****  * This software, related documentation and any modifications thereto (collectively “Software”)
+   6:Drivers/Invn/Devices/Sensor.c ****  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyr
+   7:Drivers/Invn/Devices/Sensor.c ****  * and other intellectual property rights laws.
+   8:Drivers/Invn/Devices/Sensor.c ****  *
+   9:Drivers/Invn/Devices/Sensor.c ****  * InvenSense and its licensors retain all intellectual property and proprietary rights in and to t
+  10:Drivers/Invn/Devices/Sensor.c ****  * and any use, reproduction, disclosure or distribution of the Software without an express license
+  11:Drivers/Invn/Devices/Sensor.c ****  * from InvenSense is strictly prohibited.
+  12:Drivers/Invn/Devices/Sensor.c ****  *
+  13:Drivers/Invn/Devices/Sensor.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, THE SOFTWARE IS
+  14:Drivers/Invn/Devices/Sensor.c ****  * PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  15:Drivers/Invn/Devices/Sensor.c ****  * TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+  16:Drivers/Invn/Devices/Sensor.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, IN NO EVENT SHALL
+  17:Drivers/Invn/Devices/Sensor.c ****  * INVENSENSE BE LIABLE FOR ANY DIRECT, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR
+  18:Drivers/Invn/Devices/Sensor.c ****  * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT
+  19:Drivers/Invn/Devices/Sensor.c ****  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  20:Drivers/Invn/Devices/Sensor.c ****  * OF THE SOFTWARE.
+  21:Drivers/Invn/Devices/Sensor.c ****  * ________________________________________________________________________________________________
+  22:Drivers/Invn/Devices/Sensor.c ****  */
+  23:Drivers/Invn/Devices/Sensor.c **** 
+  24:Drivers/Invn/Devices/Sensor.c **** #include "SensorTypes.h"
+  25:Drivers/Invn/Devices/Sensor.c **** 
+  26:Drivers/Invn/Devices/Sensor.c **** #include <assert.h>
+  27:Drivers/Invn/Devices/Sensor.c **** 
+  28:Drivers/Invn/Devices/Sensor.c **** const char * inv_sensor_2str(int sensor)
+  29:Drivers/Invn/Devices/Sensor.c **** {
+  28              		.loc 1 29 0
+  29              		.cfi_startproc
+ARM GAS  /tmp/ccUnFRIg.s 			page 2
+
+
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              	.LVL0:
+  33 0000 08B5     		push	{r3, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 3, -8
+  37              		.cfi_offset 14, -4
+  30:Drivers/Invn/Devices/Sensor.c **** 	static const char * sensor_str[INV_SENSOR_TYPE_MAX][2] = {
+  31:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_RESERVED",               "SENSOR_RESERVED_WU" },
+  32:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_ACCELEROMETER",          "SENSOR_ACCELEROMETER_WU" },
+  33:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_MAGNETOMETER",           "SENSOR_MAGNETOMETER_WU" },
+  34:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_ORIENTATION",            "SENSOR_ORIENTATION_WU" },
+  35:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_GYROSCOPE",              "SENSOR_GYROSCOPE_WU" },
+  36:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_LIGHT",                  "SENSOR_LIGHT_WU" },
+  37:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_PRESSURE",               "SENSOR_PRESSURE_WU" },
+  38:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_TEMPERATURE",            "SENSOR_TEMPERATURE_WU" },
+  39:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_PROXIMITY",              "SENSOR_PROXIMITY_WU" },
+  40:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_GRAVITY",                "SENSOR_GRAVITY_WU" },
+  41:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_LINEAR_ACCELERATION",    "SENSOR_LINEAR_ACCELERATION_WU" },
+  42:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_ROTATION_VECTOR",        "SENSOR_ROTATION_VECTOR_WU" },
+  43:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_HUMIDITY",               "SENSOR_HUMIDITY_WU" },
+  44:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_AMBIENT_TEMPERATURE",    "SENSOR_AMBIENT_TEMPERATURE_WU" },
+  45:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_UNCAL_MAGNETOMETER",     "SENSOR_UNCAL_MAGNETOMETER_WU" },
+  46:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_GAME_ROTATION_VECTOR",   "SENSOR_GAME_ROTATION_VECTOR_WU" },
+  47:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_UNCAL_GYROSCOPE",        "SENSOR_UNCAL_GYROSCOPE_WU" },
+  48:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_SMD",                    "SENSOR_SMD_WU" },
+  49:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_STEP_DETECTOR",          "SENSOR_STEP_DETECTOR_WU" },
+  50:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_STEP_COUNTER",           "SENSOR_STEP_COUNTER_WU" },
+  51:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_GEOMAG_ROTATION_VECTOR", "SENSOR_GEOMAG_ROTATION_VECTOR_WU" },
+  52:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_HEART_RATE",             "SENSOR_HEART_RATE_WU" },
+  53:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_TILT_DETECTOR",          "SENSOR_TILT_DETECTOR_WU" },
+  54:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_WAKE_GESTURE",           "SENSOR_WAKE_GESTURE_WU" },
+  55:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_GLANCE_GESTURE",         "SENSOR_GLANCE_GESTURE_WU" },
+  56:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_PICK_UP_GESTURE",        "SENSOR_PICK_UP_GESTURE_WU" },
+  57:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_BAC",                    "SENSOR_BAC_WU" },
+  58:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_PDR",                    "SENSOR_PDR_WU" },
+  59:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_B2S",                    "SENSOR_B2S_WU" },
+  60:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_3AXIS",                  "SENSOR_3AXIS_WU" },
+  61:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_EIS",                    "SENSOR_EIS_WU" },
+  62:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_OIS",                    "SENSOR_OIS_WU" },
+  63:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_RAW_ACCELEROMETER",      "SENSOR_RAW_ACCELEROMETER_WU" },
+  64:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_RAW_GYROSCOPE",          "SENSOR_RAW_GYROSCOPE_WU" },
+  65:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_RAW_MAGNETOMETER",       "SENSOR_RAW_MAGNETOMETER_WU"},
+  66:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_RAW_TEMPERATURE",        "SENSOR_RAW_TEMPERATURE_WU"},
+  67:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM_PRESSURE",        "SENSOR_CUSTOM_PRESSURE_WU"},
+  68:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_MIC",                    "SENSOR_MIC_WU" },
+  69:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_TSIMU",                  "SENSOR_TSIMU_WU" },
+  70:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_RAW_PPG",                "SENSOR_RAW_PPG_WU" },
+  71:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_HRV",                    "SENSOR_HRV_WU" },
+  72:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_SLEEP_ANALYSIS",         "SENSOR_SLEEP_ANALYSIS_WU"},
+  73:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_BAC_EXTENDED",           "SENSOR_BAC_EXTENDED_WU"},
+  74:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_BAC_STATISTICS",         "SENSOR_BAC_STATISTICS_WU"},
+  75:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_FLOOR_CLIMB_COUNTER",    "SENSOR_FLOOR_CLIMB_COUNTER_WU"},
+  76:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_ENERGY_EXPENDITURE",     "SENSOR_ENERGY_EXPENDITURE_WU"},
+  77:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_DISTANCE",               "SENSOR_DISTANCE_WU"},
+  78:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_SHAKE",                  "SENSOR_SHAKE_WU"},
+ARM GAS  /tmp/ccUnFRIg.s 			page 3
+
+
+  79:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_DOUBLE_TAP",             "SENSOR_DOUBLE_TAP"},
+  80:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM0",                "SENSOR_CUSTOM0_WU" },
+  81:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM1",                "SENSOR_CUSTOM1_WU" },
+  82:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM2",                "SENSOR_CUSTOM2_WU" },
+  83:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM3",                "SENSOR_CUSTOM3_WU" },
+  84:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM4",                "SENSOR_CUSTOM4_WU" },
+  85:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM5",                "SENSOR_CUSTOM5_WU" },
+  86:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM6",                "SENSOR_CUSTOM6_WU" },
+  87:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM7",                "SENSOR_CUSTOM7_WU" },
+  88:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_WOM",                    "SENSOR_WOM_WU" },
+  89:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_SEDENTARY_REMIND",       "SENSOR_SEDENTARY_REMIND_WU"},
+  90:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_DATA_ENCRYPTION",        "SENSOR_DATA_ENCRYPTION_WU"},
+  91:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_FSYNC_EVENT",            "SENSOR_FSYNC_EVENT_WU"},
+  92:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_HIGH_RATE_GYRO",         "SENSOR_HIGH_RATE_GYRO_WU"},
+  93:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_CUSTOM_BAC_SC_EE_DIST",  "SENSOR_CUSTOM_BAC_SC_EE_DIST_WU"},
+  94:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_HRM_LOGGER",             "SENSOR_HRM_LOGGER_WU"},
+  95:Drivers/Invn/Devices/Sensor.c **** 		{ "SENSOR_PREDICTIVE_QUATERNION",  "SENSOR_PREDICTIVE_QUATERNION_WU"},
+  96:Drivers/Invn/Devices/Sensor.c **** 	};
+  97:Drivers/Invn/Devices/Sensor.c **** 
+  98:Drivers/Invn/Devices/Sensor.c **** 	if (INV_SENSOR_IS_VALID(sensor)) {
+  38              		.loc 1 98 0
+  39 0002 20F00043 		bic	r3, r0, #-2147483648
+  40 0006 402B     		cmp	r3, #64
+  41 0008 0DD8     		bhi	.L3
+  42              	.LBB2:
+  99:Drivers/Invn/Devices/Sensor.c **** 		const char * s = sensor_str[INV_SENSOR_ID_TO_TYPE(sensor)][INV_SENSOR_IS_WU(sensor)];
+  43              		.loc 1 99 0
+  44 000a 5B00     		lsls	r3, r3, #1
+  45 000c 03EBD070 		add	r0, r3, r0, lsr #31
+  46              	.LVL1:
+  47 0010 064B     		ldr	r3, .L6
+  48 0012 53F82000 		ldr	r0, [r3, r0, lsl #2]
+  49              	.LVL2:
+ 100:Drivers/Invn/Devices/Sensor.c **** 
+ 101:Drivers/Invn/Devices/Sensor.c **** 		assert(s != 0); // we forgot to update the array after adding a sensor!
+  50              		.loc 1 101 0
+  51 0016 00B1     		cbz	r0, .L5
+  52              	.LVL3:
+  53              	.L1:
+  54              	.LBE2:
+ 102:Drivers/Invn/Devices/Sensor.c **** 
+ 103:Drivers/Invn/Devices/Sensor.c **** 		if(s != 0)
+ 104:Drivers/Invn/Devices/Sensor.c **** 			return s;
+ 105:Drivers/Invn/Devices/Sensor.c **** 	}
+ 106:Drivers/Invn/Devices/Sensor.c **** 
+ 107:Drivers/Invn/Devices/Sensor.c **** 	return "";
+ 108:Drivers/Invn/Devices/Sensor.c **** }
+  55              		.loc 1 108 0
+  56 0018 08BD     		pop	{r3, pc}
+  57              	.LVL4:
+  58              	.L5:
+  59              	.LBB3:
+ 101:Drivers/Invn/Devices/Sensor.c **** 
+  60              		.loc 1 101 0 discriminator 1
+  61 001a 054B     		ldr	r3, .L6+4
+  62 001c 054A     		ldr	r2, .L6+8
+  63 001e 6521     		movs	r1, #101
+ARM GAS  /tmp/ccUnFRIg.s 			page 4
+
+
+  64 0020 0548     		ldr	r0, .L6+12
+  65              	.LVL5:
+  66 0022 FFF7FEFF 		bl	__assert_func
+  67              	.LVL6:
+  68              	.L3:
+  69              	.LBE3:
+ 107:Drivers/Invn/Devices/Sensor.c **** }
+  70              		.loc 1 107 0
+  71 0026 0548     		ldr	r0, .L6+16
+  72              	.LVL7:
+  73 0028 F6E7     		b	.L1
+  74              	.L7:
+  75 002a 00BF     		.align	2
+  76              	.L6:
+  77 002c 00000000 		.word	.LANCHOR0
+  78 0030 04000000 		.word	.LC1
+  79 0034 00000000 		.word	.LANCHOR1
+  80 0038 0C000000 		.word	.LC2
+  81 003c 00000000 		.word	.LC0
+  82              		.cfi_endproc
+  83              	.LFE2:
+  85              		.section	.rodata.__func__.5721,"a",%progbits
+  86              		.align	2
+  87              		.set	.LANCHOR1,. + 0
+  90              	__func__.5721:
+  91 0000 696E765F 		.ascii	"inv_sensor_str\000"
+  91      73656E73 
+  91      6F725F73 
+  91      747200
+  92              		.section	.rodata.inv_sensor_str.str1.4,"aMS",%progbits,1
+  93              		.align	2
+  94              	.LC0:
+  95 0000 00       		.ascii	"\000"
+  96 0001 000000   		.space	3
+  97              	.LC1:
+  98 0004 7320213D 		.ascii	"s != 0\000"
+  98      203000
+  99 000b 00       		.space	1
+ 100              	.LC2:
+ 101 000c 44726976 		.ascii	"Drivers/Invn/Devices/Sensor.c\000"
+ 101      6572732F 
+ 101      496E766E 
+ 101      2F446576 
+ 101      69636573 
+ 102              		.section	.rodata.sensor_str.5719,"a",%progbits
+ 103              		.align	2
+ 104              		.set	.LANCHOR0,. + 0
+ 107              	sensor_str.5719:
+ 108 0000 00000000 		.word	.LC3
+ 109 0004 10000000 		.word	.LC4
+ 110 0008 24000000 		.word	.LC5
+ 111 000c 3C000000 		.word	.LC6
+ 112 0010 54000000 		.word	.LC7
+ 113 0014 68000000 		.word	.LC8
+ 114 0018 80000000 		.word	.LC9
+ 115 001c 94000000 		.word	.LC10
+ 116 0020 AC000000 		.word	.LC11
+ARM GAS  /tmp/ccUnFRIg.s 			page 5
+
+
+ 117 0024 C0000000 		.word	.LC12
+ 118 0028 D4000000 		.word	.LC13
+ 119 002c E4000000 		.word	.LC14
+ 120 0030 F4000000 		.word	.LC15
+ 121 0034 04010000 		.word	.LC16
+ 122 0038 18010000 		.word	.LC17
+ 123 003c 2C010000 		.word	.LC18
+ 124 0040 44010000 		.word	.LC19
+ 125 0044 58010000 		.word	.LC20
+ 126 0048 6C010000 		.word	.LC21
+ 127 004c 7C010000 		.word	.LC22
+ 128 0050 90010000 		.word	.LC23
+ 129 0054 AC010000 		.word	.LC24
+ 130 0058 CC010000 		.word	.LC25
+ 131 005c E4010000 		.word	.LC26
+ 132 0060 00020000 		.word	.LC27
+ 133 0064 10020000 		.word	.LC28
+ 134 0068 24020000 		.word	.LC29
+ 135 006c 40020000 		.word	.LC30
+ 136 0070 60020000 		.word	.LC31
+ 137 0074 7C020000 		.word	.LC32
+ 138 0078 9C020000 		.word	.LC33
+ 139 007c B8020000 		.word	.LC34
+ 140 0080 D8020000 		.word	.LC35
+ 141 0084 F0020000 		.word	.LC36
+ 142 0088 0C030000 		.word	.LC37
+ 143 008c 18030000 		.word	.LC38
+ 144 0090 28030000 		.word	.LC39
+ 145 0094 40030000 		.word	.LC40
+ 146 0098 58030000 		.word	.LC41
+ 147 009c 6C030000 		.word	.LC42
+ 148 00a0 84030000 		.word	.LC43
+ 149 00a4 A4030000 		.word	.LC44
+ 150 00a8 C8030000 		.word	.LC45
+ 151 00ac DC030000 		.word	.LC46
+ 152 00b0 F4030000 		.word	.LC47
+ 153 00b4 0C040000 		.word	.LC48
+ 154 00b8 24040000 		.word	.LC49
+ 155 00bc 38040000 		.word	.LC50
+ 156 00c0 50040000 		.word	.LC51
+ 157 00c4 68040000 		.word	.LC52
+ 158 00c8 84040000 		.word	.LC53
+ 159 00cc 9C040000 		.word	.LC54
+ 160 00d0 B8040000 		.word	.LC55
+ 161 00d4 C4040000 		.word	.LC56
+ 162 00d8 D4040000 		.word	.LC57
+ 163 00dc E0040000 		.word	.LC58
+ 164 00e0 F0040000 		.word	.LC59
+ 165 00e4 FC040000 		.word	.LC60
+ 166 00e8 0C050000 		.word	.LC61
+ 167 00ec 1C050000 		.word	.LC62
+ 168 00f0 2C050000 		.word	.LC63
+ 169 00f4 38050000 		.word	.LC64
+ 170 00f8 48050000 		.word	.LC65
+ 171 00fc 54050000 		.word	.LC66
+ 172 0100 64050000 		.word	.LC67
+ 173 0104 80050000 		.word	.LC68
+ARM GAS  /tmp/ccUnFRIg.s 			page 6
+
+
+ 174 0108 9C050000 		.word	.LC69
+ 175 010c B4050000 		.word	.LC70
+ 176 0110 CC050000 		.word	.LC71
+ 177 0114 E4050000 		.word	.LC72
+ 178 0118 00060000 		.word	.LC73
+ 179 011c 18060000 		.word	.LC74
+ 180 0120 34060000 		.word	.LC75
+ 181 0124 4C060000 		.word	.LC76
+ 182 0128 68060000 		.word	.LC77
+ 183 012c 74060000 		.word	.LC78
+ 184 0130 84060000 		.word	.LC79
+ 185 0134 94060000 		.word	.LC80
+ 186 0138 A4060000 		.word	.LC81
+ 187 013c B4060000 		.word	.LC82
+ 188 0140 C8060000 		.word	.LC83
+ 189 0144 D4060000 		.word	.LC84
+ 190 0148 E4060000 		.word	.LC85
+ 191 014c FC060000 		.word	.LC86
+ 192 0150 18070000 		.word	.LC87
+ 193 0154 2C070000 		.word	.LC88
+ 194 0158 44070000 		.word	.LC89
+ 195 015c 5C070000 		.word	.LC90
+ 196 0160 78070000 		.word	.LC91
+ 197 0164 94070000 		.word	.LC92
+ 198 0168 B4070000 		.word	.LC93
+ 199 016c D0070000 		.word	.LC94
+ 200 0170 F0070000 		.word	.LC95
+ 201 0174 00080000 		.word	.LC96
+ 202 0178 14080000 		.word	.LC97
+ 203 017c 24080000 		.word	.LC98
+ 204 0180 34080000 		.word	.LC99
+ 205 0184 34080000 		.word	.LC99
+ 206 0188 48080000 		.word	.LC100
+ 207 018c 58080000 		.word	.LC101
+ 208 0190 6C080000 		.word	.LC102
+ 209 0194 7C080000 		.word	.LC103
+ 210 0198 90080000 		.word	.LC104
+ 211 019c A0080000 		.word	.LC105
+ 212 01a0 B4080000 		.word	.LC106
+ 213 01a4 C4080000 		.word	.LC107
+ 214 01a8 D8080000 		.word	.LC108
+ 215 01ac E8080000 		.word	.LC109
+ 216 01b0 FC080000 		.word	.LC110
+ 217 01b4 0C090000 		.word	.LC111
+ 218 01b8 20090000 		.word	.LC112
+ 219 01bc 30090000 		.word	.LC113
+ 220 01c0 44090000 		.word	.LC114
+ 221 01c4 54090000 		.word	.LC115
+ 222 01c8 68090000 		.word	.LC116
+ 223 01cc 74090000 		.word	.LC117
+ 224 01d0 84090000 		.word	.LC118
+ 225 01d4 9C090000 		.word	.LC119
+ 226 01d8 B8090000 		.word	.LC120
+ 227 01dc D0090000 		.word	.LC121
+ 228 01e0 EC090000 		.word	.LC122
+ 229 01e4 000A0000 		.word	.LC123
+ 230 01e8 180A0000 		.word	.LC124
+ARM GAS  /tmp/ccUnFRIg.s 			page 7
+
+
+ 231 01ec 300A0000 		.word	.LC125
+ 232 01f0 4C0A0000 		.word	.LC126
+ 233 01f4 6C0A0000 		.word	.LC127
+ 234 01f8 8C0A0000 		.word	.LC128
+ 235 01fc A00A0000 		.word	.LC129
+ 236 0200 B80A0000 		.word	.LC130
+ 237 0204 D80A0000 		.word	.LC131
+ 238              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 239              		.align	2
+ 240              	.LC3:
+ 241 0000 53454E53 		.ascii	"SENSOR_RESERVED\000"
+ 241      4F525F52 
+ 241      45534552 
+ 241      56454400 
+ 242              	.LC4:
+ 243 0010 53454E53 		.ascii	"SENSOR_RESERVED_WU\000"
+ 243      4F525F52 
+ 243      45534552 
+ 243      5645445F 
+ 243      575500
+ 244 0023 00       		.space	1
+ 245              	.LC5:
+ 246 0024 53454E53 		.ascii	"SENSOR_ACCELEROMETER\000"
+ 246      4F525F41 
+ 246      4343454C 
+ 246      45524F4D 
+ 246      45544552 
+ 247 0039 000000   		.space	3
+ 248              	.LC6:
+ 249 003c 53454E53 		.ascii	"SENSOR_ACCELEROMETER_WU\000"
+ 249      4F525F41 
+ 249      4343454C 
+ 249      45524F4D 
+ 249      45544552 
+ 250              	.LC7:
+ 251 0054 53454E53 		.ascii	"SENSOR_MAGNETOMETER\000"
+ 251      4F525F4D 
+ 251      41474E45 
+ 251      544F4D45 
+ 251      54455200 
+ 252              	.LC8:
+ 253 0068 53454E53 		.ascii	"SENSOR_MAGNETOMETER_WU\000"
+ 253      4F525F4D 
+ 253      41474E45 
+ 253      544F4D45 
+ 253      5445525F 
+ 254 007f 00       		.space	1
+ 255              	.LC9:
+ 256 0080 53454E53 		.ascii	"SENSOR_ORIENTATION\000"
+ 256      4F525F4F 
+ 256      5249454E 
+ 256      54415449 
+ 256      4F4E00
+ 257 0093 00       		.space	1
+ 258              	.LC10:
+ 259 0094 53454E53 		.ascii	"SENSOR_ORIENTATION_WU\000"
+ 259      4F525F4F 
+ARM GAS  /tmp/ccUnFRIg.s 			page 8
+
+
+ 259      5249454E 
+ 259      54415449 
+ 259      4F4E5F57 
+ 260 00aa 0000     		.space	2
+ 261              	.LC11:
+ 262 00ac 53454E53 		.ascii	"SENSOR_GYROSCOPE\000"
+ 262      4F525F47 
+ 262      59524F53 
+ 262      434F5045 
+ 262      00
+ 263 00bd 000000   		.space	3
+ 264              	.LC12:
+ 265 00c0 53454E53 		.ascii	"SENSOR_GYROSCOPE_WU\000"
+ 265      4F525F47 
+ 265      59524F53 
+ 265      434F5045 
+ 265      5F575500 
+ 266              	.LC13:
+ 267 00d4 53454E53 		.ascii	"SENSOR_LIGHT\000"
+ 267      4F525F4C 
+ 267      49474854 
+ 267      00
+ 268 00e1 000000   		.space	3
+ 269              	.LC14:
+ 270 00e4 53454E53 		.ascii	"SENSOR_LIGHT_WU\000"
+ 270      4F525F4C 
+ 270      49474854 
+ 270      5F575500 
+ 271              	.LC15:
+ 272 00f4 53454E53 		.ascii	"SENSOR_PRESSURE\000"
+ 272      4F525F50 
+ 272      52455353 
+ 272      55524500 
+ 273              	.LC16:
+ 274 0104 53454E53 		.ascii	"SENSOR_PRESSURE_WU\000"
+ 274      4F525F50 
+ 274      52455353 
+ 274      5552455F 
+ 274      575500
+ 275 0117 00       		.space	1
+ 276              	.LC17:
+ 277 0118 53454E53 		.ascii	"SENSOR_TEMPERATURE\000"
+ 277      4F525F54 
+ 277      454D5045 
+ 277      52415455 
+ 277      524500
+ 278 012b 00       		.space	1
+ 279              	.LC18:
+ 280 012c 53454E53 		.ascii	"SENSOR_TEMPERATURE_WU\000"
+ 280      4F525F54 
+ 280      454D5045 
+ 280      52415455 
+ 280      52455F57 
+ 281 0142 0000     		.space	2
+ 282              	.LC19:
+ 283 0144 53454E53 		.ascii	"SENSOR_PROXIMITY\000"
+ 283      4F525F50 
+ARM GAS  /tmp/ccUnFRIg.s 			page 9
+
+
+ 283      524F5849 
+ 283      4D495459 
+ 283      00
+ 284 0155 000000   		.space	3
+ 285              	.LC20:
+ 286 0158 53454E53 		.ascii	"SENSOR_PROXIMITY_WU\000"
+ 286      4F525F50 
+ 286      524F5849 
+ 286      4D495459 
+ 286      5F575500 
+ 287              	.LC21:
+ 288 016c 53454E53 		.ascii	"SENSOR_GRAVITY\000"
+ 288      4F525F47 
+ 288      52415649 
+ 288      545900
+ 289 017b 00       		.space	1
+ 290              	.LC22:
+ 291 017c 53454E53 		.ascii	"SENSOR_GRAVITY_WU\000"
+ 291      4F525F47 
+ 291      52415649 
+ 291      54595F57 
+ 291      5500
+ 292 018e 0000     		.space	2
+ 293              	.LC23:
+ 294 0190 53454E53 		.ascii	"SENSOR_LINEAR_ACCELERATION\000"
+ 294      4F525F4C 
+ 294      494E4541 
+ 294      525F4143 
+ 294      43454C45 
+ 295 01ab 00       		.space	1
+ 296              	.LC24:
+ 297 01ac 53454E53 		.ascii	"SENSOR_LINEAR_ACCELERATION_WU\000"
+ 297      4F525F4C 
+ 297      494E4541 
+ 297      525F4143 
+ 297      43454C45 
+ 298 01ca 0000     		.space	2
+ 299              	.LC25:
+ 300 01cc 53454E53 		.ascii	"SENSOR_ROTATION_VECTOR\000"
+ 300      4F525F52 
+ 300      4F544154 
+ 300      494F4E5F 
+ 300      56454354 
+ 301 01e3 00       		.space	1
+ 302              	.LC26:
+ 303 01e4 53454E53 		.ascii	"SENSOR_ROTATION_VECTOR_WU\000"
+ 303      4F525F52 
+ 303      4F544154 
+ 303      494F4E5F 
+ 303      56454354 
+ 304 01fe 0000     		.space	2
+ 305              	.LC27:
+ 306 0200 53454E53 		.ascii	"SENSOR_HUMIDITY\000"
+ 306      4F525F48 
+ 306      554D4944 
+ 306      49545900 
+ 307              	.LC28:
+ARM GAS  /tmp/ccUnFRIg.s 			page 10
+
+
+ 308 0210 53454E53 		.ascii	"SENSOR_HUMIDITY_WU\000"
+ 308      4F525F48 
+ 308      554D4944 
+ 308      4954595F 
+ 308      575500
+ 309 0223 00       		.space	1
+ 310              	.LC29:
+ 311 0224 53454E53 		.ascii	"SENSOR_AMBIENT_TEMPERATURE\000"
+ 311      4F525F41 
+ 311      4D424945 
+ 311      4E545F54 
+ 311      454D5045 
+ 312 023f 00       		.space	1
+ 313              	.LC30:
+ 314 0240 53454E53 		.ascii	"SENSOR_AMBIENT_TEMPERATURE_WU\000"
+ 314      4F525F41 
+ 314      4D424945 
+ 314      4E545F54 
+ 314      454D5045 
+ 315 025e 0000     		.space	2
+ 316              	.LC31:
+ 317 0260 53454E53 		.ascii	"SENSOR_UNCAL_MAGNETOMETER\000"
+ 317      4F525F55 
+ 317      4E43414C 
+ 317      5F4D4147 
+ 317      4E45544F 
+ 318 027a 0000     		.space	2
+ 319              	.LC32:
+ 320 027c 53454E53 		.ascii	"SENSOR_UNCAL_MAGNETOMETER_WU\000"
+ 320      4F525F55 
+ 320      4E43414C 
+ 320      5F4D4147 
+ 320      4E45544F 
+ 321 0299 000000   		.space	3
+ 322              	.LC33:
+ 323 029c 53454E53 		.ascii	"SENSOR_GAME_ROTATION_VECTOR\000"
+ 323      4F525F47 
+ 323      414D455F 
+ 323      524F5441 
+ 323      54494F4E 
+ 324              	.LC34:
+ 325 02b8 53454E53 		.ascii	"SENSOR_GAME_ROTATION_VECTOR_WU\000"
+ 325      4F525F47 
+ 325      414D455F 
+ 325      524F5441 
+ 325      54494F4E 
+ 326 02d7 00       		.space	1
+ 327              	.LC35:
+ 328 02d8 53454E53 		.ascii	"SENSOR_UNCAL_GYROSCOPE\000"
+ 328      4F525F55 
+ 328      4E43414C 
+ 328      5F475952 
+ 328      4F53434F 
+ 329 02ef 00       		.space	1
+ 330              	.LC36:
+ 331 02f0 53454E53 		.ascii	"SENSOR_UNCAL_GYROSCOPE_WU\000"
+ 331      4F525F55 
+ARM GAS  /tmp/ccUnFRIg.s 			page 11
+
+
+ 331      4E43414C 
+ 331      5F475952 
+ 331      4F53434F 
+ 332 030a 0000     		.space	2
+ 333              	.LC37:
+ 334 030c 53454E53 		.ascii	"SENSOR_SMD\000"
+ 334      4F525F53 
+ 334      4D4400
+ 335 0317 00       		.space	1
+ 336              	.LC38:
+ 337 0318 53454E53 		.ascii	"SENSOR_SMD_WU\000"
+ 337      4F525F53 
+ 337      4D445F57 
+ 337      5500
+ 338 0326 0000     		.space	2
+ 339              	.LC39:
+ 340 0328 53454E53 		.ascii	"SENSOR_STEP_DETECTOR\000"
+ 340      4F525F53 
+ 340      5445505F 
+ 340      44455445 
+ 340      43544F52 
+ 341 033d 000000   		.space	3
+ 342              	.LC40:
+ 343 0340 53454E53 		.ascii	"SENSOR_STEP_DETECTOR_WU\000"
+ 343      4F525F53 
+ 343      5445505F 
+ 343      44455445 
+ 343      43544F52 
+ 344              	.LC41:
+ 345 0358 53454E53 		.ascii	"SENSOR_STEP_COUNTER\000"
+ 345      4F525F53 
+ 345      5445505F 
+ 345      434F554E 
+ 345      54455200 
+ 346              	.LC42:
+ 347 036c 53454E53 		.ascii	"SENSOR_STEP_COUNTER_WU\000"
+ 347      4F525F53 
+ 347      5445505F 
+ 347      434F554E 
+ 347      5445525F 
+ 348 0383 00       		.space	1
+ 349              	.LC43:
+ 350 0384 53454E53 		.ascii	"SENSOR_GEOMAG_ROTATION_VECTOR\000"
+ 350      4F525F47 
+ 350      454F4D41 
+ 350      475F524F 
+ 350      54415449 
+ 351 03a2 0000     		.space	2
+ 352              	.LC44:
+ 353 03a4 53454E53 		.ascii	"SENSOR_GEOMAG_ROTATION_VECTOR_WU\000"
+ 353      4F525F47 
+ 353      454F4D41 
+ 353      475F524F 
+ 353      54415449 
+ 354 03c5 000000   		.space	3
+ 355              	.LC45:
+ 356 03c8 53454E53 		.ascii	"SENSOR_HEART_RATE\000"
+ARM GAS  /tmp/ccUnFRIg.s 			page 12
+
+
+ 356      4F525F48 
+ 356      45415254 
+ 356      5F524154 
+ 356      4500
+ 357 03da 0000     		.space	2
+ 358              	.LC46:
+ 359 03dc 53454E53 		.ascii	"SENSOR_HEART_RATE_WU\000"
+ 359      4F525F48 
+ 359      45415254 
+ 359      5F524154 
+ 359      455F5755 
+ 360 03f1 000000   		.space	3
+ 361              	.LC47:
+ 362 03f4 53454E53 		.ascii	"SENSOR_TILT_DETECTOR\000"
+ 362      4F525F54 
+ 362      494C545F 
+ 362      44455445 
+ 362      43544F52 
+ 363 0409 000000   		.space	3
+ 364              	.LC48:
+ 365 040c 53454E53 		.ascii	"SENSOR_TILT_DETECTOR_WU\000"
+ 365      4F525F54 
+ 365      494C545F 
+ 365      44455445 
+ 365      43544F52 
+ 366              	.LC49:
+ 367 0424 53454E53 		.ascii	"SENSOR_WAKE_GESTURE\000"
+ 367      4F525F57 
+ 367      414B455F 
+ 367      47455354 
+ 367      55524500 
+ 368              	.LC50:
+ 369 0438 53454E53 		.ascii	"SENSOR_WAKE_GESTURE_WU\000"
+ 369      4F525F57 
+ 369      414B455F 
+ 369      47455354 
+ 369      5552455F 
+ 370 044f 00       		.space	1
+ 371              	.LC51:
+ 372 0450 53454E53 		.ascii	"SENSOR_GLANCE_GESTURE\000"
+ 372      4F525F47 
+ 372      4C414E43 
+ 372      455F4745 
+ 372      53545552 
+ 373 0466 0000     		.space	2
+ 374              	.LC52:
+ 375 0468 53454E53 		.ascii	"SENSOR_GLANCE_GESTURE_WU\000"
+ 375      4F525F47 
+ 375      4C414E43 
+ 375      455F4745 
+ 375      53545552 
+ 376 0481 000000   		.space	3
+ 377              	.LC53:
+ 378 0484 53454E53 		.ascii	"SENSOR_PICK_UP_GESTURE\000"
+ 378      4F525F50 
+ 378      49434B5F 
+ 378      55505F47 
+ARM GAS  /tmp/ccUnFRIg.s 			page 13
+
+
+ 378      45535455 
+ 379 049b 00       		.space	1
+ 380              	.LC54:
+ 381 049c 53454E53 		.ascii	"SENSOR_PICK_UP_GESTURE_WU\000"
+ 381      4F525F50 
+ 381      49434B5F 
+ 381      55505F47 
+ 381      45535455 
+ 382 04b6 0000     		.space	2
+ 383              	.LC55:
+ 384 04b8 53454E53 		.ascii	"SENSOR_BAC\000"
+ 384      4F525F42 
+ 384      414300
+ 385 04c3 00       		.space	1
+ 386              	.LC56:
+ 387 04c4 53454E53 		.ascii	"SENSOR_BAC_WU\000"
+ 387      4F525F42 
+ 387      41435F57 
+ 387      5500
+ 388 04d2 0000     		.space	2
+ 389              	.LC57:
+ 390 04d4 53454E53 		.ascii	"SENSOR_PDR\000"
+ 390      4F525F50 
+ 390      445200
+ 391 04df 00       		.space	1
+ 392              	.LC58:
+ 393 04e0 53454E53 		.ascii	"SENSOR_PDR_WU\000"
+ 393      4F525F50 
+ 393      44525F57 
+ 393      5500
+ 394 04ee 0000     		.space	2
+ 395              	.LC59:
+ 396 04f0 53454E53 		.ascii	"SENSOR_B2S\000"
+ 396      4F525F42 
+ 396      325300
+ 397 04fb 00       		.space	1
+ 398              	.LC60:
+ 399 04fc 53454E53 		.ascii	"SENSOR_B2S_WU\000"
+ 399      4F525F42 
+ 399      32535F57 
+ 399      5500
+ 400 050a 0000     		.space	2
+ 401              	.LC61:
+ 402 050c 53454E53 		.ascii	"SENSOR_3AXIS\000"
+ 402      4F525F33 
+ 402      41584953 
+ 402      00
+ 403 0519 000000   		.space	3
+ 404              	.LC62:
+ 405 051c 53454E53 		.ascii	"SENSOR_3AXIS_WU\000"
+ 405      4F525F33 
+ 405      41584953 
+ 405      5F575500 
+ 406              	.LC63:
+ 407 052c 53454E53 		.ascii	"SENSOR_EIS\000"
+ 407      4F525F45 
+ 407      495300
+ARM GAS  /tmp/ccUnFRIg.s 			page 14
+
+
+ 408 0537 00       		.space	1
+ 409              	.LC64:
+ 410 0538 53454E53 		.ascii	"SENSOR_EIS_WU\000"
+ 410      4F525F45 
+ 410      49535F57 
+ 410      5500
+ 411 0546 0000     		.space	2
+ 412              	.LC65:
+ 413 0548 53454E53 		.ascii	"SENSOR_OIS\000"
+ 413      4F525F4F 
+ 413      495300
+ 414 0553 00       		.space	1
+ 415              	.LC66:
+ 416 0554 53454E53 		.ascii	"SENSOR_OIS_WU\000"
+ 416      4F525F4F 
+ 416      49535F57 
+ 416      5500
+ 417 0562 0000     		.space	2
+ 418              	.LC67:
+ 419 0564 53454E53 		.ascii	"SENSOR_RAW_ACCELEROMETER\000"
+ 419      4F525F52 
+ 419      41575F41 
+ 419      4343454C 
+ 419      45524F4D 
+ 420 057d 000000   		.space	3
+ 421              	.LC68:
+ 422 0580 53454E53 		.ascii	"SENSOR_RAW_ACCELEROMETER_WU\000"
+ 422      4F525F52 
+ 422      41575F41 
+ 422      4343454C 
+ 422      45524F4D 
+ 423              	.LC69:
+ 424 059c 53454E53 		.ascii	"SENSOR_RAW_GYROSCOPE\000"
+ 424      4F525F52 
+ 424      41575F47 
+ 424      59524F53 
+ 424      434F5045 
+ 425 05b1 000000   		.space	3
+ 426              	.LC70:
+ 427 05b4 53454E53 		.ascii	"SENSOR_RAW_GYROSCOPE_WU\000"
+ 427      4F525F52 
+ 427      41575F47 
+ 427      59524F53 
+ 427      434F5045 
+ 428              	.LC71:
+ 429 05cc 53454E53 		.ascii	"SENSOR_RAW_MAGNETOMETER\000"
+ 429      4F525F52 
+ 429      41575F4D 
+ 429      41474E45 
+ 429      544F4D45 
+ 430              	.LC72:
+ 431 05e4 53454E53 		.ascii	"SENSOR_RAW_MAGNETOMETER_WU\000"
+ 431      4F525F52 
+ 431      41575F4D 
+ 431      41474E45 
+ 431      544F4D45 
+ 432 05ff 00       		.space	1
+ARM GAS  /tmp/ccUnFRIg.s 			page 15
+
+
+ 433              	.LC73:
+ 434 0600 53454E53 		.ascii	"SENSOR_RAW_TEMPERATURE\000"
+ 434      4F525F52 
+ 434      41575F54 
+ 434      454D5045 
+ 434      52415455 
+ 435 0617 00       		.space	1
+ 436              	.LC74:
+ 437 0618 53454E53 		.ascii	"SENSOR_RAW_TEMPERATURE_WU\000"
+ 437      4F525F52 
+ 437      41575F54 
+ 437      454D5045 
+ 437      52415455 
+ 438 0632 0000     		.space	2
+ 439              	.LC75:
+ 440 0634 53454E53 		.ascii	"SENSOR_CUSTOM_PRESSURE\000"
+ 440      4F525F43 
+ 440      5553544F 
+ 440      4D5F5052 
+ 440      45535355 
+ 441 064b 00       		.space	1
+ 442              	.LC76:
+ 443 064c 53454E53 		.ascii	"SENSOR_CUSTOM_PRESSURE_WU\000"
+ 443      4F525F43 
+ 443      5553544F 
+ 443      4D5F5052 
+ 443      45535355 
+ 444 0666 0000     		.space	2
+ 445              	.LC77:
+ 446 0668 53454E53 		.ascii	"SENSOR_MIC\000"
+ 446      4F525F4D 
+ 446      494300
+ 447 0673 00       		.space	1
+ 448              	.LC78:
+ 449 0674 53454E53 		.ascii	"SENSOR_MIC_WU\000"
+ 449      4F525F4D 
+ 449      49435F57 
+ 449      5500
+ 450 0682 0000     		.space	2
+ 451              	.LC79:
+ 452 0684 53454E53 		.ascii	"SENSOR_TSIMU\000"
+ 452      4F525F54 
+ 452      53494D55 
+ 452      00
+ 453 0691 000000   		.space	3
+ 454              	.LC80:
+ 455 0694 53454E53 		.ascii	"SENSOR_TSIMU_WU\000"
+ 455      4F525F54 
+ 455      53494D55 
+ 455      5F575500 
+ 456              	.LC81:
+ 457 06a4 53454E53 		.ascii	"SENSOR_RAW_PPG\000"
+ 457      4F525F52 
+ 457      41575F50 
+ 457      504700
+ 458 06b3 00       		.space	1
+ 459              	.LC82:
+ARM GAS  /tmp/ccUnFRIg.s 			page 16
+
+
+ 460 06b4 53454E53 		.ascii	"SENSOR_RAW_PPG_WU\000"
+ 460      4F525F52 
+ 460      41575F50 
+ 460      50475F57 
+ 460      5500
+ 461 06c6 0000     		.space	2
+ 462              	.LC83:
+ 463 06c8 53454E53 		.ascii	"SENSOR_HRV\000"
+ 463      4F525F48 
+ 463      525600
+ 464 06d3 00       		.space	1
+ 465              	.LC84:
+ 466 06d4 53454E53 		.ascii	"SENSOR_HRV_WU\000"
+ 466      4F525F48 
+ 466      52565F57 
+ 466      5500
+ 467 06e2 0000     		.space	2
+ 468              	.LC85:
+ 469 06e4 53454E53 		.ascii	"SENSOR_SLEEP_ANALYSIS\000"
+ 469      4F525F53 
+ 469      4C454550 
+ 469      5F414E41 
+ 469      4C595349 
+ 470 06fa 0000     		.space	2
+ 471              	.LC86:
+ 472 06fc 53454E53 		.ascii	"SENSOR_SLEEP_ANALYSIS_WU\000"
+ 472      4F525F53 
+ 472      4C454550 
+ 472      5F414E41 
+ 472      4C595349 
+ 473 0715 000000   		.space	3
+ 474              	.LC87:
+ 475 0718 53454E53 		.ascii	"SENSOR_BAC_EXTENDED\000"
+ 475      4F525F42 
+ 475      41435F45 
+ 475      5854454E 
+ 475      44454400 
+ 476              	.LC88:
+ 477 072c 53454E53 		.ascii	"SENSOR_BAC_EXTENDED_WU\000"
+ 477      4F525F42 
+ 477      41435F45 
+ 477      5854454E 
+ 477      4445445F 
+ 478 0743 00       		.space	1
+ 479              	.LC89:
+ 480 0744 53454E53 		.ascii	"SENSOR_BAC_STATISTICS\000"
+ 480      4F525F42 
+ 480      41435F53 
+ 480      54415449 
+ 480      53544943 
+ 481 075a 0000     		.space	2
+ 482              	.LC90:
+ 483 075c 53454E53 		.ascii	"SENSOR_BAC_STATISTICS_WU\000"
+ 483      4F525F42 
+ 483      41435F53 
+ 483      54415449 
+ 483      53544943 
+ARM GAS  /tmp/ccUnFRIg.s 			page 17
+
+
+ 484 0775 000000   		.space	3
+ 485              	.LC91:
+ 486 0778 53454E53 		.ascii	"SENSOR_FLOOR_CLIMB_COUNTER\000"
+ 486      4F525F46 
+ 486      4C4F4F52 
+ 486      5F434C49 
+ 486      4D425F43 
+ 487 0793 00       		.space	1
+ 488              	.LC92:
+ 489 0794 53454E53 		.ascii	"SENSOR_FLOOR_CLIMB_COUNTER_WU\000"
+ 489      4F525F46 
+ 489      4C4F4F52 
+ 489      5F434C49 
+ 489      4D425F43 
+ 490 07b2 0000     		.space	2
+ 491              	.LC93:
+ 492 07b4 53454E53 		.ascii	"SENSOR_ENERGY_EXPENDITURE\000"
+ 492      4F525F45 
+ 492      4E455247 
+ 492      595F4558 
+ 492      50454E44 
+ 493 07ce 0000     		.space	2
+ 494              	.LC94:
+ 495 07d0 53454E53 		.ascii	"SENSOR_ENERGY_EXPENDITURE_WU\000"
+ 495      4F525F45 
+ 495      4E455247 
+ 495      595F4558 
+ 495      50454E44 
+ 496 07ed 000000   		.space	3
+ 497              	.LC95:
+ 498 07f0 53454E53 		.ascii	"SENSOR_DISTANCE\000"
+ 498      4F525F44 
+ 498      49535441 
+ 498      4E434500 
+ 499              	.LC96:
+ 500 0800 53454E53 		.ascii	"SENSOR_DISTANCE_WU\000"
+ 500      4F525F44 
+ 500      49535441 
+ 500      4E43455F 
+ 500      575500
+ 501 0813 00       		.space	1
+ 502              	.LC97:
+ 503 0814 53454E53 		.ascii	"SENSOR_SHAKE\000"
+ 503      4F525F53 
+ 503      48414B45 
+ 503      00
+ 504 0821 000000   		.space	3
+ 505              	.LC98:
+ 506 0824 53454E53 		.ascii	"SENSOR_SHAKE_WU\000"
+ 506      4F525F53 
+ 506      48414B45 
+ 506      5F575500 
+ 507              	.LC99:
+ 508 0834 53454E53 		.ascii	"SENSOR_DOUBLE_TAP\000"
+ 508      4F525F44 
+ 508      4F55424C 
+ 508      455F5441 
+ARM GAS  /tmp/ccUnFRIg.s 			page 18
+
+
+ 508      5000
+ 509 0846 0000     		.space	2
+ 510              	.LC100:
+ 511 0848 53454E53 		.ascii	"SENSOR_CUSTOM0\000"
+ 511      4F525F43 
+ 511      5553544F 
+ 511      4D3000
+ 512 0857 00       		.space	1
+ 513              	.LC101:
+ 514 0858 53454E53 		.ascii	"SENSOR_CUSTOM0_WU\000"
+ 514      4F525F43 
+ 514      5553544F 
+ 514      4D305F57 
+ 514      5500
+ 515 086a 0000     		.space	2
+ 516              	.LC102:
+ 517 086c 53454E53 		.ascii	"SENSOR_CUSTOM1\000"
+ 517      4F525F43 
+ 517      5553544F 
+ 517      4D3100
+ 518 087b 00       		.space	1
+ 519              	.LC103:
+ 520 087c 53454E53 		.ascii	"SENSOR_CUSTOM1_WU\000"
+ 520      4F525F43 
+ 520      5553544F 
+ 520      4D315F57 
+ 520      5500
+ 521 088e 0000     		.space	2
+ 522              	.LC104:
+ 523 0890 53454E53 		.ascii	"SENSOR_CUSTOM2\000"
+ 523      4F525F43 
+ 523      5553544F 
+ 523      4D3200
+ 524 089f 00       		.space	1
+ 525              	.LC105:
+ 526 08a0 53454E53 		.ascii	"SENSOR_CUSTOM2_WU\000"
+ 526      4F525F43 
+ 526      5553544F 
+ 526      4D325F57 
+ 526      5500
+ 527 08b2 0000     		.space	2
+ 528              	.LC106:
+ 529 08b4 53454E53 		.ascii	"SENSOR_CUSTOM3\000"
+ 529      4F525F43 
+ 529      5553544F 
+ 529      4D3300
+ 530 08c3 00       		.space	1
+ 531              	.LC107:
+ 532 08c4 53454E53 		.ascii	"SENSOR_CUSTOM3_WU\000"
+ 532      4F525F43 
+ 532      5553544F 
+ 532      4D335F57 
+ 532      5500
+ 533 08d6 0000     		.space	2
+ 534              	.LC108:
+ 535 08d8 53454E53 		.ascii	"SENSOR_CUSTOM4\000"
+ 535      4F525F43 
+ARM GAS  /tmp/ccUnFRIg.s 			page 19
+
+
+ 535      5553544F 
+ 535      4D3400
+ 536 08e7 00       		.space	1
+ 537              	.LC109:
+ 538 08e8 53454E53 		.ascii	"SENSOR_CUSTOM4_WU\000"
+ 538      4F525F43 
+ 538      5553544F 
+ 538      4D345F57 
+ 538      5500
+ 539 08fa 0000     		.space	2
+ 540              	.LC110:
+ 541 08fc 53454E53 		.ascii	"SENSOR_CUSTOM5\000"
+ 541      4F525F43 
+ 541      5553544F 
+ 541      4D3500
+ 542 090b 00       		.space	1
+ 543              	.LC111:
+ 544 090c 53454E53 		.ascii	"SENSOR_CUSTOM5_WU\000"
+ 544      4F525F43 
+ 544      5553544F 
+ 544      4D355F57 
+ 544      5500
+ 545 091e 0000     		.space	2
+ 546              	.LC112:
+ 547 0920 53454E53 		.ascii	"SENSOR_CUSTOM6\000"
+ 547      4F525F43 
+ 547      5553544F 
+ 547      4D3600
+ 548 092f 00       		.space	1
+ 549              	.LC113:
+ 550 0930 53454E53 		.ascii	"SENSOR_CUSTOM6_WU\000"
+ 550      4F525F43 
+ 550      5553544F 
+ 550      4D365F57 
+ 550      5500
+ 551 0942 0000     		.space	2
+ 552              	.LC114:
+ 553 0944 53454E53 		.ascii	"SENSOR_CUSTOM7\000"
+ 553      4F525F43 
+ 553      5553544F 
+ 553      4D3700
+ 554 0953 00       		.space	1
+ 555              	.LC115:
+ 556 0954 53454E53 		.ascii	"SENSOR_CUSTOM7_WU\000"
+ 556      4F525F43 
+ 556      5553544F 
+ 556      4D375F57 
+ 556      5500
+ 557 0966 0000     		.space	2
+ 558              	.LC116:
+ 559 0968 53454E53 		.ascii	"SENSOR_WOM\000"
+ 559      4F525F57 
+ 559      4F4D00
+ 560 0973 00       		.space	1
+ 561              	.LC117:
+ 562 0974 53454E53 		.ascii	"SENSOR_WOM_WU\000"
+ 562      4F525F57 
+ARM GAS  /tmp/ccUnFRIg.s 			page 20
+
+
+ 562      4F4D5F57 
+ 562      5500
+ 563 0982 0000     		.space	2
+ 564              	.LC118:
+ 565 0984 53454E53 		.ascii	"SENSOR_SEDENTARY_REMIND\000"
+ 565      4F525F53 
+ 565      4544454E 
+ 565      54415259 
+ 565      5F52454D 
+ 566              	.LC119:
+ 567 099c 53454E53 		.ascii	"SENSOR_SEDENTARY_REMIND_WU\000"
+ 567      4F525F53 
+ 567      4544454E 
+ 567      54415259 
+ 567      5F52454D 
+ 568 09b7 00       		.space	1
+ 569              	.LC120:
+ 570 09b8 53454E53 		.ascii	"SENSOR_DATA_ENCRYPTION\000"
+ 570      4F525F44 
+ 570      4154415F 
+ 570      454E4352 
+ 570      59505449 
+ 571 09cf 00       		.space	1
+ 572              	.LC121:
+ 573 09d0 53454E53 		.ascii	"SENSOR_DATA_ENCRYPTION_WU\000"
+ 573      4F525F44 
+ 573      4154415F 
+ 573      454E4352 
+ 573      59505449 
+ 574 09ea 0000     		.space	2
+ 575              	.LC122:
+ 576 09ec 53454E53 		.ascii	"SENSOR_FSYNC_EVENT\000"
+ 576      4F525F46 
+ 576      53594E43 
+ 576      5F455645 
+ 576      4E5400
+ 577 09ff 00       		.space	1
+ 578              	.LC123:
+ 579 0a00 53454E53 		.ascii	"SENSOR_FSYNC_EVENT_WU\000"
+ 579      4F525F46 
+ 579      53594E43 
+ 579      5F455645 
+ 579      4E545F57 
+ 580 0a16 0000     		.space	2
+ 581              	.LC124:
+ 582 0a18 53454E53 		.ascii	"SENSOR_HIGH_RATE_GYRO\000"
+ 582      4F525F48 
+ 582      4947485F 
+ 582      52415445 
+ 582      5F475952 
+ 583 0a2e 0000     		.space	2
+ 584              	.LC125:
+ 585 0a30 53454E53 		.ascii	"SENSOR_HIGH_RATE_GYRO_WU\000"
+ 585      4F525F48 
+ 585      4947485F 
+ 585      52415445 
+ 585      5F475952 
+ARM GAS  /tmp/ccUnFRIg.s 			page 21
+
+
+ 586 0a49 000000   		.space	3
+ 587              	.LC126:
+ 588 0a4c 53454E53 		.ascii	"SENSOR_CUSTOM_BAC_SC_EE_DIST\000"
+ 588      4F525F43 
+ 588      5553544F 
+ 588      4D5F4241 
+ 588      435F5343 
+ 589 0a69 000000   		.space	3
+ 590              	.LC127:
+ 591 0a6c 53454E53 		.ascii	"SENSOR_CUSTOM_BAC_SC_EE_DIST_WU\000"
+ 591      4F525F43 
+ 591      5553544F 
+ 591      4D5F4241 
+ 591      435F5343 
+ 592              	.LC128:
+ 593 0a8c 53454E53 		.ascii	"SENSOR_HRM_LOGGER\000"
+ 593      4F525F48 
+ 593      524D5F4C 
+ 593      4F474745 
+ 593      5200
+ 594 0a9e 0000     		.space	2
+ 595              	.LC129:
+ 596 0aa0 53454E53 		.ascii	"SENSOR_HRM_LOGGER_WU\000"
+ 596      4F525F48 
+ 596      524D5F4C 
+ 596      4F474745 
+ 596      525F5755 
+ 597 0ab5 000000   		.space	3
+ 598              	.LC130:
+ 599 0ab8 53454E53 		.ascii	"SENSOR_PREDICTIVE_QUATERNION\000"
+ 599      4F525F50 
+ 599      52454449 
+ 599      43544956 
+ 599      455F5155 
+ 600 0ad5 000000   		.space	3
+ 601              	.LC131:
+ 602 0ad8 53454E53 		.ascii	"SENSOR_PREDICTIVE_QUATERNION_WU\000"
+ 602      4F525F50 
+ 602      52454449 
+ 602      43544956 
+ 602      455F5155 
+ 603              		.text
+ 604              	.Letext0:
+ 605              		.file 2 "Drivers/Invn/Devices/SensorTypes.h"
+ 606              		.file 3 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/assert.h"
+ARM GAS  /tmp/ccUnFRIg.s 			page 22
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 Sensor.c
+     /tmp/ccUnFRIg.s:18     .text.inv_sensor_str:0000000000000000 $t
+     /tmp/ccUnFRIg.s:25     .text.inv_sensor_str:0000000000000000 inv_sensor_str
+     /tmp/ccUnFRIg.s:77     .text.inv_sensor_str:000000000000002c $d
+     /tmp/ccUnFRIg.s:86     .rodata.__func__.5721:0000000000000000 $d
+     /tmp/ccUnFRIg.s:90     .rodata.__func__.5721:0000000000000000 __func__.5721
+     /tmp/ccUnFRIg.s:93     .rodata.inv_sensor_str.str1.4:0000000000000000 $d
+     /tmp/ccUnFRIg.s:103    .rodata.sensor_str.5719:0000000000000000 $d
+     /tmp/ccUnFRIg.s:107    .rodata.sensor_str.5719:0000000000000000 sensor_str.5719
+     /tmp/ccUnFRIg.s:239    .rodata.str1.4:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+__assert_func

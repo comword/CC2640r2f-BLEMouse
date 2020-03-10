@@ -1,0 +1,2189 @@
+ARM GAS  /tmp/cciSKlRg.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"Icm207xxSetup.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.serif_read,"ax",%progbits
+  18              		.align	1
+  19              		.syntax unified
+  20              		.thumb
+  21              		.thumb_func
+  22              		.fpu fpv4-sp-d16
+  24              	serif_read:
+  25              	.LFB13:
+  26              		.file 1 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c"
+   1:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** /*
+   2:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * ________________________________________________________________________________________________
+   3:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * Copyright (c) 2015-2015 InvenSense Inc. All rights reserved.
+   4:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  *
+   5:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * This software, related documentation and any modifications thereto (collectively “Software”)
+   6:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyr
+   7:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * and other intellectual property rights laws.
+   8:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  *
+   9:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * InvenSense and its licensors retain all intellectual property and proprietary rights in and to t
+  10:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * and any use, reproduction, disclosure or distribution of the Software without an express license
+  11:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * from InvenSense is strictly prohibited.
+  12:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  *
+  13:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, THE SOFTWARE IS
+  14:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  15:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+  16:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, IN NO EVENT SHALL
+  17:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * INVENSENSE BE LIABLE FOR ANY DIRECT, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR
+  18:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT
+  19:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  20:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * OF THE SOFTWARE.
+  21:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  * ________________________________________________________________________________________________
+  22:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  */
+  23:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  24:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #include "Icm207xxSetup.h"
+  25:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #include "Icm207xxDefs.h"
+  26:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #include "Icm207xx.h"
+  27:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  28:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** //#include "Invn/EmbUtils/DataConverter.h"
+  29:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** //#include "Invn/EmbUtils/Message.h"
+  30:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  31:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** static int serif_write(struct inv_icm207xx * s, uint16_t reg, uint32_t length, const uint8_t *data)
+  32:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ARM GAS  /tmp/cciSKlRg.s 			page 2
+
+
+  33:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return inv_icm207xx_write_reg(s, (uint8_t)reg, data, length);
+  34:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+  35:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  36:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** static int serif_read(struct inv_icm207xx * s, uint16_t reg, uint32_t length, uint8_t *data)
+  37:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+  27              		.loc 1 37 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              	.LVL0:
+  32 0000 10B5     		push	{r4, lr}
+  33              	.LCFI0:
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 4, -8
+  36              		.cfi_offset 14, -4
+  37 0002 1C46     		mov	r4, r3
+  38:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return inv_icm207xx_read_reg(s, (uint8_t)reg, data, length);
+  38              		.loc 1 38 0
+  39 0004 1346     		mov	r3, r2
+  40              	.LVL1:
+  41 0006 2246     		mov	r2, r4
+  42              	.LVL2:
+  43 0008 C9B2     		uxtb	r1, r1
+  44              	.LVL3:
+  45 000a FFF7FEFF 		bl	inv_icm207xx_read_reg
+  46              	.LVL4:
+  39:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+  47              		.loc 1 39 0
+  48 000e 10BD     		pop	{r4, pc}
+  49              		.cfi_endproc
+  50              	.LFE13:
+  52              		.section	.text.serif_write,"ax",%progbits
+  53              		.align	1
+  54              		.syntax unified
+  55              		.thumb
+  56              		.thumb_func
+  57              		.fpu fpv4-sp-d16
+  59              	serif_write:
+  60              	.LFB12:
+  32:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return inv_icm207xx_write_reg(s, (uint8_t)reg, data, length);
+  61              		.loc 1 32 0
+  62              		.cfi_startproc
+  63              		@ args = 0, pretend = 0, frame = 0
+  64              		@ frame_needed = 0, uses_anonymous_args = 0
+  65              	.LVL5:
+  66 0000 10B5     		push	{r4, lr}
+  67              	.LCFI1:
+  68              		.cfi_def_cfa_offset 8
+  69              		.cfi_offset 4, -8
+  70              		.cfi_offset 14, -4
+  71 0002 1C46     		mov	r4, r3
+  33:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+  72              		.loc 1 33 0
+  73 0004 1346     		mov	r3, r2
+  74              	.LVL6:
+  75 0006 2246     		mov	r2, r4
+  76              	.LVL7:
+ARM GAS  /tmp/cciSKlRg.s 			page 3
+
+
+  77 0008 C9B2     		uxtb	r1, r1
+  78              	.LVL8:
+  79 000a FFF7FEFF 		bl	inv_icm207xx_write_reg
+  80              	.LVL9:
+  34:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  81              		.loc 1 34 0
+  82 000e 10BD     		pop	{r4, pc}
+  83              		.cfi_endproc
+  84              	.LFE12:
+  86              		.section	.text.inv_icm207xx_get_whoami,"ax",%progbits
+  87              		.align	1
+  88              		.global	inv_icm207xx_get_whoami
+  89              		.syntax unified
+  90              		.thumb
+  91              		.thumb_func
+  92              		.fpu fpv4-sp-d16
+  94              	inv_icm207xx_get_whoami:
+  95              	.LFB14:
+  40:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  41:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_get_whoami(struct inv_icm207xx * s, uint8_t * whoami)
+  42:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+  96              		.loc 1 42 0
+  97              		.cfi_startproc
+  98              		@ args = 0, pretend = 0, frame = 0
+  99              		@ frame_needed = 0, uses_anonymous_args = 0
+ 100              	.LVL10:
+ 101 0000 08B5     		push	{r3, lr}
+ 102              	.LCFI2:
+ 103              		.cfi_def_cfa_offset 8
+ 104              		.cfi_offset 3, -8
+ 105              		.cfi_offset 14, -4
+ 106              	.LVL11:
+ 107              	.LBB6:
+ 108              	.LBB7:
+ 109              		.file 2 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h"
+   1:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** /*
+   2:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * ________________________________________________________________________________________________
+   3:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * Copyright (c) 2015-2015 InvenSense Inc. All rights reserved.
+   4:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  *
+   5:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * This software, related documentation and any modifications thereto (collectively “Software”)
+   6:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyr
+   7:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * and other intellectual property rights laws.
+   8:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  *
+   9:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * InvenSense and its licensors retain all intellectual property and proprietary rights in and to t
+  10:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * and any use, reproduction, disclosure or distribution of the Software without an express license
+  11:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * from InvenSense is strictly prohibited.
+  12:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  *
+  13:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, THE SOFTWARE IS
+  14:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  15:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+  16:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, IN NO EVENT SHALL
+  17:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * INVENSENSE BE LIABLE FOR ANY DIRECT, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR
+  18:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT
+  19:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  20:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * OF THE SOFTWARE.
+  21:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  * ________________________________________________________________________________________________
+  22:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  */
+ARM GAS  /tmp/cciSKlRg.s 			page 4
+
+
+  23:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  24:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** /** @defgroup DriverIcm207xxTransport Icm207xx driver transport
+  25:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  *  @brief    Low-level Icm207xx register access
+  26:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  *  @ingroup  DriverIcm207xx
+  27:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  *  @{
+  28:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h ****  */
+  29:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  30:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** #ifndef _INV_ICM207XX_TRANSPORT_H_
+  31:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** #define _INV_ICM207XX_TRANSPORT_H_
+  32:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  33:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** #include "Invn/InvExport.h"
+  34:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  35:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** #ifdef __cplusplus
+  36:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** extern "C" {
+  37:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** #endif
+  38:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  39:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** #include <stdint.h>
+  40:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  41:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** /* forward declaration */
+  42:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** struct inv_icm207xx;
+  43:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  44:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** int INV_EXPORT inv_icm207xx_read_reg(struct inv_icm207xx * s, uint8_t reg, uint8_t * buf, uint32_t 
+  45:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  46:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** int INV_EXPORT inv_icm207xx_write_reg(struct inv_icm207xx * s, uint8_t reg, const uint8_t * buf, ui
+  47:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  48:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** int INV_EXPORT inv_icm207xx_read_reg_ois(struct inv_icm207xx * s, uint8_t reg,	uint8_t * buf, uint3
+  49:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  50:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** static inline int inv_icm207xx_write_reg_one(struct inv_icm207xx * s, uint8_t reg, uint8_t reg_valu
+  51:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** {
+  52:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 	return inv_icm207xx_write_reg(s, reg, &reg_value, 1);
+  53:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** }
+  54:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 
+  55:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** static inline int inv_icm207xx_read_reg_one(struct inv_icm207xx * s, uint8_t reg, uint8_t * reg_val
+  56:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** {
+  57:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h **** 	return inv_icm207xx_read_reg(s, reg, reg_value, 1);
+ 110              		.loc 2 57 0
+ 111 0002 0123     		movs	r3, #1
+ 112 0004 0A46     		mov	r2, r1
+ 113 0006 7521     		movs	r1, #117
+ 114              	.LVL12:
+ 115 0008 FFF7FEFF 		bl	inv_icm207xx_read_reg
+ 116              	.LVL13:
+ 117              	.LBE7:
+ 118              	.LBE6:
+  43:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return inv_icm207xx_read_reg_one(s, REG_WHO_AM_I, whoami);
+  44:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 119              		.loc 1 44 0
+ 120 000c 08BD     		pop	{r3, pc}
+ 121              		.cfi_endproc
+ 122              	.LFE14:
+ 124              		.section	.text.inv_icm207xx_get_chip_info,"ax",%progbits
+ 125              		.align	1
+ 126              		.global	inv_icm207xx_get_chip_info
+ 127              		.syntax unified
+ 128              		.thumb
+ 129              		.thumb_func
+ 130              		.fpu fpv4-sp-d16
+ARM GAS  /tmp/cciSKlRg.s 			page 5
+
+
+ 132              	inv_icm207xx_get_chip_info:
+ 133              	.LFB15:
+  45:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  46:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_get_chip_info(struct inv_icm207xx * s, uint8_t chip_info[3])
+  47:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 134              		.loc 1 47 0
+ 135              		.cfi_startproc
+ 136              		@ args = 0, pretend = 0, frame = 0
+ 137              		@ frame_needed = 0, uses_anonymous_args = 0
+ 138              	.LVL14:
+ 139 0000 10B5     		push	{r4, lr}
+ 140              	.LCFI3:
+ 141              		.cfi_def_cfa_offset 8
+ 142              		.cfi_offset 4, -8
+ 143              		.cfi_offset 14, -4
+ 144 0002 0C46     		mov	r4, r1
+ 145              	.LVL15:
+ 146              	.LBB8:
+ 147              	.LBB9:
+ 148              		.loc 2 57 0
+ 149 0004 0123     		movs	r3, #1
+ 150 0006 0A46     		mov	r2, r1
+ 151 0008 7521     		movs	r1, #117
+ 152              	.LVL16:
+ 153 000a FFF7FEFF 		bl	inv_icm207xx_read_reg
+ 154              	.LVL17:
+ 155              	.LBE9:
+ 156              	.LBE8:
+  48:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int result = inv_icm207xx_read_reg_one(s, REG_WHO_AM_I, &chip_info[0]);
+  49:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  50:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if ((MEMS_CHIP == HW_ICM20602)||(MEMS_CHIP == HW_ICM20603))
+  51:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_read_reg_one(s, MPUREG_MANUFACTURER_ID, &chip_info[1]);
+  52:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_read_reg_one(s, MPUREG_CHIP_ID, &chip_info[2]);
+  53:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #else
+  54:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	chip_info[1] = 0;
+ 157              		.loc 1 54 0
+ 158 000e 0023     		movs	r3, #0
+ 159 0010 6370     		strb	r3, [r4, #1]
+  55:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	chip_info[2] = 0;
+ 160              		.loc 1 55 0
+ 161 0012 A370     		strb	r3, [r4, #2]
+  56:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+  57:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  58:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return result;
+  59:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 162              		.loc 1 59 0
+ 163 0014 10BD     		pop	{r4, pc}
+ 164              		.cfi_endproc
+ 165              	.LFE15:
+ 167              		.section	.text.inv_icm207xx_soft_reset,"ax",%progbits
+ 168              		.align	1
+ 169              		.global	inv_icm207xx_soft_reset
+ 170              		.syntax unified
+ 171              		.thumb
+ 172              		.thumb_func
+ 173              		.fpu fpv4-sp-d16
+ 175              	inv_icm207xx_soft_reset:
+ARM GAS  /tmp/cciSKlRg.s 			page 6
+
+
+ 176              	.LFB17:
+  60:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  61:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_initialize(struct inv_icm207xx * s)
+  62:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+  63:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int result = 0;
+  64:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	uint8_t data = 0;
+  65:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	unsigned i;
+  66:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  67:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// Set varialbes to default values
+  68:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	memset(&s->base_state, 0, sizeof(s->base_state));
+  69:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  70:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.lp_en_support = 1;
+  71:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.pwr_mgmt_2 = BIT_PWR_ACCEL_STBY | BIT_PWR_GYRO_STBY;
+  72:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->power_state = PowerStateSleepState;
+  73:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->wom_enabled = 0;
+  74:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  75:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	for(i = 0; i < sizeof(s->requested_odr)/sizeof(s->requested_odr[0]); ++i) {
+  76:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		s->requested_odr[i] = ODR_MIN_DELAY;
+  77:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+  78:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  79:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_soft_reset(s);
+  80:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  81:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.pwr_mgmt_1 = CLK_SEL;
+  82:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= serif_write(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+  83:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  84:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if ((MEMS_CHIP == HW_ICM6800)||(MEMS_CHIP == HW_ICM207XX)||(MEMS_CHIP == HW_ICM20609))
+  85:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(s->serif.is_spi) {
+  86:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		s->base_state.user_ctrl |= BIT_I2C_IF_DIS;
+  87:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+  88:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, REG_USER_CTRL, 1, &s->base_state.user_ctrl);
+  89:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+  90:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  91:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= serif_write(s, MPUREG_PWR_MGMT_2, 1, &s->base_state.pwr_mgmt_2);
+  92:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  93:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_read_reg(s, REG_WHO_AM_I, 1, &data);
+  94:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+  95:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// Setup MEMs properties.
+  96:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.accel_averaging = 1; //Change this value if higher sensor sample avergaing is requir
+  97:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.gyro_averaging = 1;  //Change this value if higher sensor sample avergaing is requir
+  98:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	inv_icm207xx_set_divider(s, FIFO_DIVIDER);       //Initial sampling rate BASE_SAMPLE_RATE/(9+1) = 
+  99:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_gyro_fullscale(s, MPU_FS_2000dps);
+ 100:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_accel_fullscale(s, MPU_FS_4G);
+ 101:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 102:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_gyro_ois_fullscale(s, MPU_FS_250dps);
+ 103:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_accel_ois_fullscale(s, MPU_OIS_FS_4G);
+ 104:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 105:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// set acc bw at 420 to be inline with A_DPLPF_CFG startup value
+ 106:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_accel_bandwidth(s, MPU_ABW_420);
+ 107:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// set gyr bw at 176 to be inline with first config
+ 108:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_gyro_bandwidth(s, MPU_GBW_176);
+ 109:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 110:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if ((MEMS_CHIP == HW_ICM20602)||(MEMS_CHIP == HW_ICM20690)||(MEMS_CHIP == HW_ICM20603)||(MEMS_CHIP
+ 111:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	/* make sure FIFO is disabled */
+ 112:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_disable_fifo(s);
+ 113:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 114:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// For ICM20602, FIFO size is fixed 1kB
+ 115:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if ((MEMS_CHIP == HW_ICM20690)||(MEMS_CHIP == HW_ICM207XX)||(MEMS_CHIP == HW_ICM20609))
+ARM GAS  /tmp/cciSKlRg.s 			page 7
+
+
+ 116:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	data = BITS_FIFO_SIZE; // 1kB FIFO for 20690, 4kB for 207xx and 512B for 20609
+ 117:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_ACCEL_CONFIG_2, 1, &data);
+ 118:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 119:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 120:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	/* Configure:
+ 121:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	  - FIFO record mode i.e FIFO count unit is packet 
+ 122:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	  - FIFO snapshot mode i.e drop the data when the FIFO overflows */
+ 123:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	data = BIT_FIFO_RECORD_MODE | BIT_FIFO_SNAPSHOT_MODE; 
+ 124:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_CONFIG, 1, &data);
+ 125:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	
+ 126:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	/* initialize aux i2c and compass */
+ 127:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(s->secondary_state.compass_id != 0) {
+ 128:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		inv_icm207xx_set_slave_compass_id(s);
+ 129:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 130:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 131:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 132:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// Enable Interrupts.
+ 133:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	data = BIT_DATA_RDY_INT_EN;
+ 134:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_INT_ENABLE, 1, &data); // Enable DRDY Interrupt
+ 135:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 136:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return result;
+ 137:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 138:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 139:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_soft_reset(struct inv_icm207xx * s)
+ 140:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 177              		.loc 1 140 0
+ 178              		.cfi_startproc
+ 179              		@ args = 0, pretend = 0, frame = 0
+ 180              		@ frame_needed = 0, uses_anonymous_args = 0
+ 181              	.LVL18:
+ 182 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 183              	.LCFI4:
+ 184              		.cfi_def_cfa_offset 24
+ 185              		.cfi_offset 3, -24
+ 186              		.cfi_offset 4, -20
+ 187              		.cfi_offset 5, -16
+ 188              		.cfi_offset 6, -12
+ 189              		.cfi_offset 7, -8
+ 190              		.cfi_offset 14, -4
+ 191 0002 0546     		mov	r5, r0
+ 192              	.LVL19:
+ 141:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int result = 0;
+ 142:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int timeout = 1000; /* 1s */
+ 143:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 144:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// Reset the internal registers and restores the default settings.
+ 145:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// The bit automatically clears to 0 once the reset is done.
+ 146:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.pwr_mgmt_1 = BIT_DEVICE_RESET;
+ 193              		.loc 1 146 0
+ 194 0004 0646     		mov	r6, r0
+ 195 0006 8023     		movs	r3, #128
+ 196 0008 06F8353F 		strb	r3, [r6, #53]!
+ 147:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= serif_write(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+ 197              		.loc 1 147 0
+ 198 000c 3346     		mov	r3, r6
+ 199 000e 0122     		movs	r2, #1
+ 200 0010 6B21     		movs	r1, #107
+ 201 0012 FFF7FEFF 		bl	serif_write
+ARM GAS  /tmp/cciSKlRg.s 			page 8
+
+
+ 202              	.LVL20:
+ 148:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(result)
+ 203              		.loc 1 148 0
+ 204 0016 0746     		mov	r7, r0
+ 205 0018 08B1     		cbz	r0, .L14
+ 206              	.LVL21:
+ 207              	.L9:
+ 149:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return result;
+ 150:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 151:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	inv_icm207xx_sleep(50); // wait for 50ms after soft reset
+ 152:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 153:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	do {
+ 154:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		result = serif_read(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+ 155:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		if(result)
+ 156:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			return result;
+ 157:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 158:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		inv_icm207xx_sleep(1);
+ 159:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		timeout -= 1;
+ 160:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 161:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		if(timeout < 0)
+ 162:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			return INV_ERROR_TIMEOUT;
+ 163:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	} while (s->base_state.pwr_mgmt_1 != RST_VAL_PWR_MGMT_1); // this is the default expected value
+ 164:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 165:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ 166:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 208              		.loc 1 166 0
+ 209 001a 3846     		mov	r0, r7
+ 210 001c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 211              	.LVL22:
+ 212              	.L14:
+ 151:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 213              		.loc 1 151 0
+ 214 001e 3220     		movs	r0, #50
+ 215              	.LVL23:
+ 216 0020 FFF7FEFF 		bl	inv_icm207xx_sleep
+ 217              	.LVL24:
+ 142:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 218              		.loc 1 142 0
+ 219 0024 4FF47A74 		mov	r4, #1000
+ 220              	.LVL25:
+ 221              	.L11:
+ 154:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		if(result)
+ 222              		.loc 1 154 0
+ 223 0028 3346     		mov	r3, r6
+ 224 002a 0122     		movs	r2, #1
+ 225 002c 6B21     		movs	r1, #107
+ 226 002e 2846     		mov	r0, r5
+ 227 0030 FFF7FEFF 		bl	serif_read
+ 228              	.LVL26:
+ 155:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			return result;
+ 229              		.loc 1 155 0
+ 230 0034 0746     		mov	r7, r0
+ 231 0036 0028     		cmp	r0, #0
+ 232 0038 EFD1     		bne	.L9
+ 158:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		timeout -= 1;
+ 233              		.loc 1 158 0
+ 234 003a 0120     		movs	r0, #1
+ARM GAS  /tmp/cciSKlRg.s 			page 9
+
+
+ 235              	.LVL27:
+ 236 003c FFF7FEFF 		bl	inv_icm207xx_sleep
+ 237              	.LVL28:
+ 161:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			return INV_ERROR_TIMEOUT;
+ 238              		.loc 1 161 0
+ 239 0040 013C     		subs	r4, r4, #1
+ 240              	.LVL29:
+ 241 0042 04D4     		bmi	.L12
+ 163:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 242              		.loc 1 163 0
+ 243 0044 95F83530 		ldrb	r3, [r5, #53]	@ zero_extendqisi2
+ 244 0048 402B     		cmp	r3, #64
+ 245 004a EDD1     		bne	.L11
+ 246 004c E5E7     		b	.L9
+ 247              	.L12:
+ 162:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	} while (s->base_state.pwr_mgmt_1 != RST_VAL_PWR_MGMT_1); // this is the default expected value
+ 248              		.loc 1 162 0
+ 249 004e 6FF00307 		mvn	r7, #3
+ 250              	.LVL30:
+ 251 0052 E2E7     		b	.L9
+ 252              		.cfi_endproc
+ 253              	.LFE17:
+ 255              		.section	.text.inv_icm207xx_set_divider,"ax",%progbits
+ 256              		.align	1
+ 257              		.global	inv_icm207xx_set_divider
+ 258              		.syntax unified
+ 259              		.thumb
+ 260              		.thumb_func
+ 261              		.fpu fpv4-sp-d16
+ 263              	inv_icm207xx_set_divider:
+ 264              	.LFB18:
+ 167:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 168:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_divider(struct inv_icm207xx * s, uint8_t idiv)
+ 169:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 265              		.loc 1 169 0
+ 266              		.cfi_startproc
+ 267              		@ args = 0, pretend = 0, frame = 8
+ 268              		@ frame_needed = 0, uses_anonymous_args = 0
+ 269              	.LVL31:
+ 270 0000 00B5     		push	{lr}
+ 271              	.LCFI5:
+ 272              		.cfi_def_cfa_offset 4
+ 273              		.cfi_offset 14, -4
+ 274 0002 83B0     		sub	sp, sp, #12
+ 275              	.LCFI6:
+ 276              		.cfi_def_cfa_offset 16
+ 277 0004 02AB     		add	r3, sp, #8
+ 278 0006 03F8011D 		strb	r1, [r3, #-1]!
+ 279              	.LVL32:
+ 170:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int result = 0;
+ 171:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 172:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.gyro_div = idiv;
+ 280              		.loc 1 172 0
+ 281 000a 80F83810 		strb	r1, [r0, #56]
+ 173:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.accel_div = idiv;
+ 282              		.loc 1 173 0
+ 283 000e 89B2     		uxth	r1, r1
+ARM GAS  /tmp/cciSKlRg.s 			page 10
+
+
+ 284              	.LVL33:
+ 285 0010 4187     		strh	r1, [r0, #58]	@ movhi
+ 174:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.compass_div = idiv;
+ 286              		.loc 1 174 0
+ 287 0012 8187     		strh	r1, [r0, #60]	@ movhi
+ 175:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 176:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_SMPLRT_DIV, 1, &idiv);
+ 288              		.loc 1 176 0
+ 289 0014 0122     		movs	r2, #1
+ 290 0016 1921     		movs	r1, #25
+ 291 0018 FFF7FEFF 		bl	inv_icm207xx_mems_write_reg
+ 292              	.LVL34:
+ 177:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return result;
+ 178:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 293              		.loc 1 178 0
+ 294 001c 03B0     		add	sp, sp, #12
+ 295              	.LCFI7:
+ 296              		.cfi_def_cfa_offset 4
+ 297              		@ sp needed
+ 298 001e 5DF804FB 		ldr	pc, [sp], #4
+ 299              		.cfi_endproc
+ 300              	.LFE18:
+ 302              		.section	.text.inv_icm207xx_set_i2c_mst_dly,"ax",%progbits
+ 303              		.align	1
+ 304              		.global	inv_icm207xx_set_i2c_mst_dly
+ 305              		.syntax unified
+ 306              		.thumb
+ 307              		.thumb_func
+ 308              		.fpu fpv4-sp-d16
+ 310              	inv_icm207xx_set_i2c_mst_dly:
+ 311              	.LFB19:
+ 179:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 180:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_i2c_mst_dly(struct inv_icm207xx * s, uint16_t minDly, uint16_t minDly_compass)
+ 181:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 312              		.loc 1 181 0
+ 313              		.cfi_startproc
+ 314              		@ args = 0, pretend = 0, frame = 0
+ 315              		@ frame_needed = 0, uses_anonymous_args = 0
+ 316              		@ link register save eliminated.
+ 317              	.LVL35:
+ 182:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int result = 0;
+ 183:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	unsigned char delay_ctrl = 0;
+ 184:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	unsigned char mst_delay = 0;
+ 185:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 186:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 187:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if (minDly < minDly_compass) { // if the compass rate is lower
+ 188:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		delay_ctrl = BIT_SLV0_DLY_EN | BIT_SLV1_DLY_EN | BIT_SLV2_DLY_EN;
+ 189:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		mst_delay = minDly_compass/minDly-1;
+ 190:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		if(mst_delay > 0x1f)
+ 191:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			mst_delay = 0x1f;
+ 192:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	} else {
+ 193:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		delay_ctrl = 0;
+ 194:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		mst_delay = 0;
+ 195:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 196:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 197:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_I2C_MST_DELAY_CTRL, 1, &delay_ctrl);
+ 198:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_I2C_SLV4_CTRL, 1, &mst_delay);
+ARM GAS  /tmp/cciSKlRg.s 			page 11
+
+
+ 199:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->secondary_state.i2c_mst_dly = mst_delay;
+ 200:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #else
+ 201:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 202:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	(void)s, (void)mst_delay, (void)delay_ctrl, (void)minDly, (void)minDly_compass;
+ 203:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 204:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 205:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 206:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return result;
+ 207:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 318              		.loc 1 207 0
+ 319 0000 0020     		movs	r0, #0
+ 320              	.LVL36:
+ 321 0002 7047     		bx	lr
+ 322              		.cfi_endproc
+ 323              	.LFE19:
+ 325              		.section	.text.inv_icm207xx_set_chip_power_state,"ax",%progbits
+ 326              		.align	1
+ 327              		.global	inv_icm207xx_set_chip_power_state
+ 328              		.syntax unified
+ 329              		.thumb
+ 330              		.thumb_func
+ 331              		.fpu fpv4-sp-d16
+ 333              	inv_icm207xx_set_chip_power_state:
+ 334              	.LFB20:
+ 208:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 209:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** /** @brief     This function sets the power state of the Scorption+ chip loop
+ 210:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  *  @param[in] func   CHIP_AWAKE, CHIP_LP_ENABLE
+ 211:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  *  @param[in] on_off The functions are enabled if previously disabled and
+ 212:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  *                    disabled if previously enabled based on the value of On/Off.
+ 213:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c ****  */
+ 214:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_chip_power_state(struct inv_icm207xx * s, uint8_t func, uint8_t on_off)
+ 215:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 335              		.loc 1 215 0
+ 336              		.cfi_startproc
+ 337              		@ args = 0, pretend = 0, frame = 0
+ 338              		@ frame_needed = 0, uses_anonymous_args = 0
+ 339              	.LVL37:
+ 340 0000 38B5     		push	{r3, r4, r5, lr}
+ 341              	.LCFI8:
+ 342              		.cfi_def_cfa_offset 16
+ 343              		.cfi_offset 3, -16
+ 344              		.cfi_offset 4, -12
+ 345              		.cfi_offset 5, -8
+ 346              		.cfi_offset 14, -4
+ 347 0002 0446     		mov	r4, r0
+ 348              	.LVL38:
+ 216:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int status = 0;
+ 217:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 218:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	switch(func) {
+ 349              		.loc 1 218 0
+ 350 0004 0129     		cmp	r1, #1
+ 351 0006 04D0     		beq	.L20
+ 352 0008 0229     		cmp	r1, #2
+ 353 000a 3DD0     		beq	.L21
+ 216:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int status = 0;
+ 354              		.loc 1 216 0
+ 355 000c 0025     		movs	r5, #0
+ARM GAS  /tmp/cciSKlRg.s 			page 12
+
+
+ 356              	.LVL39:
+ 357              	.L18:
+ 219:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case CHIP_AWAKE:
+ 220:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	{
+ 221:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		if(on_off) {
+ 222:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			if((s->base_state.wake_state & CHIP_AWAKE) == 0) {
+ 223:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.pwr_mgmt_1 &= ~BIT_SLEEP; // clear sleep bit
+ 224:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				status = serif_write(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+ 225:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.wake_state |= CHIP_AWAKE;
+ 226:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				inv_icm207xx_sleep_us(100); // after writting the bit wait 100 Micro Seconds
+ 227:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			}
+ 228:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		}
+ 229:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		else {
+ 230:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			if(s->base_state.wake_state & CHIP_AWAKE) {
+ 231:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.pwr_mgmt_1 |= BIT_SLEEP; // set sleep bit
+ 232:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				status = serif_write(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+ 233:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.wake_state &= ~CHIP_AWAKE;
+ 234:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				inv_icm207xx_sleep_us(100); // after writing the bit wait 100 Micro Seconds
+ 235:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			}
+ 236:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		}
+ 237:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 238:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	break;
+ 239:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 240:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if ((MEMS_CHIP != HW_ICM20602)&&(MEMS_CHIP != HW_ICM20603))
+ 241:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case CHIP_LP_ENABLE:
+ 242:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	{
+ 243:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		if(s->base_state.lp_en_support == 1) {
+ 244:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			if(on_off) {
+ 245:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				if((s->base_state.wake_state & CHIP_LP_ENABLE) == 0) {
+ 246:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.pwr_mgmt_2 &= ~BIT_LP_DIS; // enable lp
+ 247:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#if ((MEMS_CHIP == HW_ICM6800)||(MEMS_CHIP == HW_ICM207XX)||(MEMS_CHIP == HW_ICM20609))
+ 248:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.pwr_mgmt_2 &= ~BIT_DMP_LP_DIS; // lp_en ON
+ 249:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#endif
+ 250:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					status = serif_write(s, MPUREG_PWR_MGMT_2, 1, &s->base_state.pwr_mgmt_2);
+ 251:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.wake_state |= CHIP_LP_ENABLE;
+ 252:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					inv_icm207xx_sleep_us(100); // after writting the bit wait 100 Micro Seconds
+ 253:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				}
+ 254:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			}
+ 255:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			else {
+ 256:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				if((s->base_state.wake_state & CHIP_LP_ENABLE)){
+ 257:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.pwr_mgmt_2 |= BIT_LP_DIS; // disable lp
+ 258:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#if ((MEMS_CHIP == HW_ICM6800)||(MEMS_CHIP == HW_ICM207XX)||(MEMS_CHIP == HW_ICM20609))
+ 259:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.pwr_mgmt_2 |= BIT_DMP_LP_DIS; // lp_en off
+ 260:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#endif
+ 261:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					status = serif_write(s, MPUREG_PWR_MGMT_2, 1, &s->base_state.pwr_mgmt_2);
+ 262:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.wake_state &= ~CHIP_LP_ENABLE;
+ 263:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					inv_icm207xx_sleep_us(100); // after writting the bit wait 100 Micro Seconds
+ 264:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				}
+ 265:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			}
+ 266:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		}
+ 267:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 268:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	break;
+ 269:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 270:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	default:
+ 271:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		break;
+ 272:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	} // end switch
+ 273:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ARM GAS  /tmp/cciSKlRg.s 			page 13
+
+
+ 274:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return status;
+ 275:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 358              		.loc 1 275 0
+ 359 000e 2846     		mov	r0, r5
+ 360 0010 38BD     		pop	{r3, r4, r5, pc}
+ 361              	.LVL40:
+ 362              	.L20:
+ 221:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			if((s->base_state.wake_state & CHIP_AWAKE) == 0) {
+ 363              		.loc 1 221 0
+ 364 0012 E2B1     		cbz	r2, .L22
+ 222:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.pwr_mgmt_1 &= ~BIT_SLEEP; // clear sleep bit
+ 365              		.loc 1 222 0
+ 366 0014 90F83430 		ldrb	r3, [r0, #52]	@ zero_extendqisi2
+ 367 0018 13F0010F 		tst	r3, #1
+ 368 001c 01D0     		beq	.L32
+ 216:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 369              		.loc 1 216 0
+ 370 001e 0025     		movs	r5, #0
+ 371 0020 F5E7     		b	.L18
+ 372              	.L32:
+ 223:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				status = serif_write(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+ 373              		.loc 1 223 0
+ 374 0022 90F83520 		ldrb	r2, [r0, #53]	@ zero_extendqisi2
+ 375              	.LVL41:
+ 376 0026 22F04002 		bic	r2, r2, #64
+ 377 002a 0346     		mov	r3, r0
+ 378 002c 03F8352F 		strb	r2, [r3, #53]!
+ 224:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.wake_state |= CHIP_AWAKE;
+ 379              		.loc 1 224 0
+ 380 0030 0122     		movs	r2, #1
+ 381 0032 6B21     		movs	r1, #107
+ 382              	.LVL42:
+ 383 0034 FFF7FEFF 		bl	serif_write
+ 384              	.LVL43:
+ 385 0038 0546     		mov	r5, r0
+ 386              	.LVL44:
+ 225:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				inv_icm207xx_sleep_us(100); // after writting the bit wait 100 Micro Seconds
+ 387              		.loc 1 225 0
+ 388 003a 94F83430 		ldrb	r3, [r4, #52]	@ zero_extendqisi2
+ 389 003e 43F00103 		orr	r3, r3, #1
+ 390 0042 84F83430 		strb	r3, [r4, #52]
+ 226:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			}
+ 391              		.loc 1 226 0
+ 392 0046 6420     		movs	r0, #100
+ 393              	.LVL45:
+ 394 0048 FFF7FEFF 		bl	inv_icm207xx_sleep_us
+ 395              	.LVL46:
+ 396 004c DFE7     		b	.L18
+ 397              	.LVL47:
+ 398              	.L22:
+ 230:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.pwr_mgmt_1 |= BIT_SLEEP; // set sleep bit
+ 399              		.loc 1 230 0
+ 400 004e 90F83430 		ldrb	r3, [r0, #52]	@ zero_extendqisi2
+ 401 0052 13F0010F 		tst	r3, #1
+ 402 0056 01D1     		bne	.L33
+ 216:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 403              		.loc 1 216 0
+ARM GAS  /tmp/cciSKlRg.s 			page 14
+
+
+ 404 0058 0025     		movs	r5, #0
+ 405 005a D8E7     		b	.L18
+ 406              	.L33:
+ 231:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				status = serif_write(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+ 407              		.loc 1 231 0
+ 408 005c 90F83520 		ldrb	r2, [r0, #53]	@ zero_extendqisi2
+ 409              	.LVL48:
+ 410 0060 42F04002 		orr	r2, r2, #64
+ 411 0064 0346     		mov	r3, r0
+ 412 0066 03F8352F 		strb	r2, [r3, #53]!
+ 232:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				s->base_state.wake_state &= ~CHIP_AWAKE;
+ 413              		.loc 1 232 0
+ 414 006a 0122     		movs	r2, #1
+ 415 006c 6B21     		movs	r1, #107
+ 416              	.LVL49:
+ 417 006e FFF7FEFF 		bl	serif_write
+ 418              	.LVL50:
+ 419 0072 0546     		mov	r5, r0
+ 420              	.LVL51:
+ 233:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				inv_icm207xx_sleep_us(100); // after writing the bit wait 100 Micro Seconds
+ 421              		.loc 1 233 0
+ 422 0074 94F83430 		ldrb	r3, [r4, #52]	@ zero_extendqisi2
+ 423 0078 23F00103 		bic	r3, r3, #1
+ 424 007c 84F83430 		strb	r3, [r4, #52]
+ 234:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			}
+ 425              		.loc 1 234 0
+ 426 0080 6420     		movs	r0, #100
+ 427              	.LVL52:
+ 428 0082 FFF7FEFF 		bl	inv_icm207xx_sleep_us
+ 429              	.LVL53:
+ 430 0086 C2E7     		b	.L18
+ 431              	.LVL54:
+ 432              	.L21:
+ 243:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 			if(on_off) {
+ 433              		.loc 1 243 0
+ 434 0088 90F84630 		ldrb	r3, [r0, #70]	@ zero_extendqisi2
+ 435 008c 13F0010F 		tst	r3, #1
+ 436 0090 3AD0     		beq	.L27
+ 244:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				if((s->base_state.wake_state & CHIP_LP_ENABLE) == 0) {
+ 437              		.loc 1 244 0
+ 438 0092 E2B1     		cbz	r2, .L23
+ 245:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.pwr_mgmt_2 &= ~BIT_LP_DIS; // enable lp
+ 439              		.loc 1 245 0
+ 440 0094 90F83430 		ldrb	r3, [r0, #52]	@ zero_extendqisi2
+ 441 0098 13F0020F 		tst	r3, #2
+ 442 009c 01D0     		beq	.L34
+ 216:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 443              		.loc 1 216 0
+ 444 009e 0025     		movs	r5, #0
+ 445 00a0 B5E7     		b	.L18
+ 446              	.L34:
+ 246:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#if ((MEMS_CHIP == HW_ICM6800)||(MEMS_CHIP == HW_ICM207XX)||(MEMS_CHIP == HW_ICM20609))
+ 447              		.loc 1 246 0
+ 448 00a2 90F83620 		ldrb	r2, [r0, #54]	@ zero_extendqisi2
+ 449              	.LVL55:
+ 248:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#endif
+ 450              		.loc 1 248 0
+ARM GAS  /tmp/cciSKlRg.s 			page 15
+
+
+ 451 00a6 02F03F02 		and	r2, r2, #63
+ 452 00aa 0346     		mov	r3, r0
+ 453 00ac 03F8362F 		strb	r2, [r3, #54]!
+ 250:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.wake_state |= CHIP_LP_ENABLE;
+ 454              		.loc 1 250 0
+ 455 00b0 0122     		movs	r2, #1
+ 456 00b2 6C21     		movs	r1, #108
+ 457              	.LVL56:
+ 458 00b4 FFF7FEFF 		bl	serif_write
+ 459              	.LVL57:
+ 460 00b8 0546     		mov	r5, r0
+ 461              	.LVL58:
+ 251:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					inv_icm207xx_sleep_us(100); // after writting the bit wait 100 Micro Seconds
+ 462              		.loc 1 251 0
+ 463 00ba 94F83430 		ldrb	r3, [r4, #52]	@ zero_extendqisi2
+ 464 00be 43F00203 		orr	r3, r3, #2
+ 465 00c2 84F83430 		strb	r3, [r4, #52]
+ 252:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				}
+ 466              		.loc 1 252 0
+ 467 00c6 6420     		movs	r0, #100
+ 468              	.LVL59:
+ 469 00c8 FFF7FEFF 		bl	inv_icm207xx_sleep_us
+ 470              	.LVL60:
+ 471 00cc 9FE7     		b	.L18
+ 472              	.LVL61:
+ 473              	.L23:
+ 256:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.pwr_mgmt_2 |= BIT_LP_DIS; // disable lp
+ 474              		.loc 1 256 0
+ 475 00ce 90F83430 		ldrb	r3, [r0, #52]	@ zero_extendqisi2
+ 476 00d2 13F0020F 		tst	r3, #2
+ 477 00d6 01D1     		bne	.L35
+ 216:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 478              		.loc 1 216 0
+ 479 00d8 0025     		movs	r5, #0
+ 274:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 480              		.loc 1 274 0
+ 481 00da 98E7     		b	.L18
+ 482              	.L35:
+ 257:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#if ((MEMS_CHIP == HW_ICM6800)||(MEMS_CHIP == HW_ICM207XX)||(MEMS_CHIP == HW_ICM20609))
+ 483              		.loc 1 257 0
+ 484 00dc 90F83620 		ldrb	r2, [r0, #54]	@ zero_extendqisi2
+ 485              	.LVL62:
+ 259:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	#endif
+ 486              		.loc 1 259 0
+ 487 00e0 42F0C002 		orr	r2, r2, #192
+ 488 00e4 0346     		mov	r3, r0
+ 489 00e6 03F8362F 		strb	r2, [r3, #54]!
+ 261:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					s->base_state.wake_state &= ~CHIP_LP_ENABLE;
+ 490              		.loc 1 261 0
+ 491 00ea 0122     		movs	r2, #1
+ 492 00ec 6C21     		movs	r1, #108
+ 493              	.LVL63:
+ 494 00ee FFF7FEFF 		bl	serif_write
+ 495              	.LVL64:
+ 496 00f2 0546     		mov	r5, r0
+ 497              	.LVL65:
+ 262:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 					inv_icm207xx_sleep_us(100); // after writting the bit wait 100 Micro Seconds
+ARM GAS  /tmp/cciSKlRg.s 			page 16
+
+
+ 498              		.loc 1 262 0
+ 499 00f4 94F83430 		ldrb	r3, [r4, #52]	@ zero_extendqisi2
+ 500 00f8 23F00203 		bic	r3, r3, #2
+ 501 00fc 84F83430 		strb	r3, [r4, #52]
+ 263:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 				}
+ 502              		.loc 1 263 0
+ 503 0100 6420     		movs	r0, #100
+ 504              	.LVL66:
+ 505 0102 FFF7FEFF 		bl	inv_icm207xx_sleep_us
+ 506              	.LVL67:
+ 507 0106 82E7     		b	.L18
+ 508              	.LVL68:
+ 509              	.L27:
+ 216:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 510              		.loc 1 216 0
+ 511 0108 0025     		movs	r5, #0
+ 512 010a 80E7     		b	.L18
+ 513              		.cfi_endproc
+ 514              	.LFE20:
+ 516              		.section	.text.inv_icm207xx_get_chip_power_state,"ax",%progbits
+ 517              		.align	1
+ 518              		.global	inv_icm207xx_get_chip_power_state
+ 519              		.syntax unified
+ 520              		.thumb
+ 521              		.thumb_func
+ 522              		.fpu fpv4-sp-d16
+ 524              	inv_icm207xx_get_chip_power_state:
+ 525              	.LFB21:
+ 276:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 277:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint8_t inv_icm207xx_get_chip_power_state(struct inv_icm207xx * s)
+ 278:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 526              		.loc 1 278 0
+ 527              		.cfi_startproc
+ 528              		@ args = 0, pretend = 0, frame = 0
+ 529              		@ frame_needed = 0, uses_anonymous_args = 0
+ 530              		@ link register save eliminated.
+ 531              	.LVL69:
+ 279:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return s->base_state.wake_state;
+ 280:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 532              		.loc 1 280 0
+ 533 0000 90F83400 		ldrb	r0, [r0, #52]	@ zero_extendqisi2
+ 534              	.LVL70:
+ 535 0004 7047     		bx	lr
+ 536              		.cfi_endproc
+ 537              	.LFE21:
+ 539              		.section	.text.inv_icm207xx_get_chip_base_sample_rate,"ax",%progbits
+ 540              		.align	1
+ 541              		.global	inv_icm207xx_get_chip_base_sample_rate
+ 542              		.syntax unified
+ 543              		.thumb
+ 544              		.thumb_func
+ 545              		.fpu fpv4-sp-d16
+ 547              	inv_icm207xx_get_chip_base_sample_rate:
+ 548              	.LFB22:
+ 281:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 282:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint16_t inv_icm207xx_get_chip_base_sample_rate(struct inv_icm207xx * s)
+ 283:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ARM GAS  /tmp/cciSKlRg.s 			page 17
+
+
+ 549              		.loc 1 283 0
+ 550              		.cfi_startproc
+ 551              		@ args = 0, pretend = 0, frame = 0
+ 552              		@ frame_needed = 0, uses_anonymous_args = 0
+ 553              		@ link register save eliminated.
+ 554              	.LVL71:
+ 284:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	(void)s;
+ 285:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 286:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return BASE_SAMPLE_RATE; // base_state.sample_rate;
+ 287:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 555              		.loc 1 287 0
+ 556 0000 4FF47A70 		mov	r0, #1000
+ 557              	.LVL72:
+ 558 0004 7047     		bx	lr
+ 559              		.cfi_endproc
+ 560              	.LFE22:
+ 562              		.section	.text.inv_icm207xx_accel_fsr_2_reg,"ax",%progbits
+ 563              		.align	1
+ 564              		.global	inv_icm207xx_accel_fsr_2_reg
+ 565              		.syntax unified
+ 566              		.thumb
+ 567              		.thumb_func
+ 568              		.fpu fpv4-sp-d16
+ 570              	inv_icm207xx_accel_fsr_2_reg:
+ 571              	.LFB23:
+ 288:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 289:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_accel_fsr_2_reg(int32_t fsr)
+ 290:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 572              		.loc 1 290 0
+ 573              		.cfi_startproc
+ 574              		@ args = 0, pretend = 0, frame = 0
+ 575              		@ frame_needed = 0, uses_anonymous_args = 0
+ 576              		@ link register save eliminated.
+ 577              	.LVL73:
+ 291:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	switch(fsr) {
+ 578              		.loc 1 291 0
+ 579 0000 B0F57A6F 		cmp	r0, #4000
+ 580 0004 11D0     		beq	.L45
+ 581 0006 07DD     		ble	.L46
+ 582 0008 B0F5FA5F 		cmp	r0, #8000
+ 583 000c 09D0     		beq	.L43
+ 584 000e B0F57A5F 		cmp	r0, #16000
+ 585 0012 08D1     		bne	.L39
+ 292:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 2000:  return MPU_FS_2G;
+ 293:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 4000:  return MPU_FS_4G;
+ 294:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 8000:  return MPU_FS_8G;
+ 295:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 16000: return MPU_FS_16G;
+ 586              		.loc 1 295 0
+ 587 0014 0320     		movs	r0, #3
+ 588              	.LVL74:
+ 589 0016 7047     		bx	lr
+ 590              	.LVL75:
+ 591              	.L46:
+ 291:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	switch(fsr) {
+ 592              		.loc 1 291 0
+ 593 0018 B0F5FA6F 		cmp	r0, #2000
+ 594 001c 03D1     		bne	.L39
+ARM GAS  /tmp/cciSKlRg.s 			page 18
+
+
+ 292:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 2000:  return MPU_FS_2G;
+ 595              		.loc 1 292 0
+ 596 001e 0020     		movs	r0, #0
+ 597              	.LVL76:
+ 598 0020 7047     		bx	lr
+ 599              	.LVL77:
+ 600              	.L43:
+ 294:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 16000: return MPU_FS_16G;
+ 601              		.loc 1 294 0
+ 602 0022 0220     		movs	r0, #2
+ 603              	.LVL78:
+ 604 0024 7047     		bx	lr
+ 605              	.LVL79:
+ 606              	.L39:
+ 296:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	default:    return NUM_MPU_AFS;
+ 607              		.loc 1 296 0
+ 608 0026 0420     		movs	r0, #4
+ 609              	.LVL80:
+ 610 0028 7047     		bx	lr
+ 611              	.LVL81:
+ 612              	.L45:
+ 293:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 8000:  return MPU_FS_8G;
+ 613              		.loc 1 293 0
+ 614 002a 0120     		movs	r0, #1
+ 615              	.LVL82:
+ 297:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 298:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 616              		.loc 1 298 0
+ 617 002c 7047     		bx	lr
+ 618              		.cfi_endproc
+ 619              	.LFE23:
+ 621              		.section	.text.inv_icm207xx_reg_2_accel_fsr,"ax",%progbits
+ 622              		.align	1
+ 623              		.global	inv_icm207xx_reg_2_accel_fsr
+ 624              		.syntax unified
+ 625              		.thumb
+ 626              		.thumb_func
+ 627              		.fpu fpv4-sp-d16
+ 629              	inv_icm207xx_reg_2_accel_fsr:
+ 630              	.LFB24:
+ 299:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 300:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_reg_2_accel_fsr(uint8_t reg)
+ 301:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 631              		.loc 1 301 0
+ 632              		.cfi_startproc
+ 633              		@ args = 0, pretend = 0, frame = 0
+ 634              		@ frame_needed = 0, uses_anonymous_args = 0
+ 635              		@ link register save eliminated.
+ 636              	.LVL83:
+ 302:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	switch(reg) {
+ 637              		.loc 1 302 0
+ 638 0000 0328     		cmp	r0, #3
+ 639 0002 0CD8     		bhi	.L48
+ 640 0004 DFE800F0 		tbb	[pc, r0]
+ 641              	.L50:
+ 642 0008 02       		.byte	(.L49-.L50)/2
+ 643 0009 0E       		.byte	(.L54-.L50)/2
+ARM GAS  /tmp/cciSKlRg.s 			page 19
+
+
+ 644 000a 05       		.byte	(.L52-.L50)/2
+ 645 000b 08       		.byte	(.L53-.L50)/2
+ 646              		.p2align 1
+ 647              	.L49:
+ 303:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_2G:   return 2000;
+ 648              		.loc 1 303 0
+ 649 000c 4FF4FA60 		mov	r0, #2000
+ 650              	.LVL84:
+ 651 0010 7047     		bx	lr
+ 652              	.LVL85:
+ 653              	.L52:
+ 304:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_4G:   return 4000;
+ 305:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_8G:   return 8000;
+ 654              		.loc 1 305 0
+ 655 0012 4FF4FA50 		mov	r0, #8000
+ 656              	.LVL86:
+ 657 0016 7047     		bx	lr
+ 658              	.LVL87:
+ 659              	.L53:
+ 306:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_16G:  return 16000;
+ 660              		.loc 1 306 0
+ 661 0018 4FF47A50 		mov	r0, #16000
+ 662              	.LVL88:
+ 663 001c 7047     		bx	lr
+ 664              	.LVL89:
+ 665              	.L48:
+ 307:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	default:          return -1;
+ 666              		.loc 1 307 0
+ 667 001e 4FF0FF30 		mov	r0, #-1
+ 668              	.LVL90:
+ 669 0022 7047     		bx	lr
+ 670              	.LVL91:
+ 671              	.L54:
+ 304:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_4G:   return 4000;
+ 672              		.loc 1 304 0
+ 673 0024 4FF47A60 		mov	r0, #4000
+ 674              	.LVL92:
+ 308:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 309:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 675              		.loc 1 309 0
+ 676 0028 7047     		bx	lr
+ 677              		.cfi_endproc
+ 678              	.LFE24:
+ 680              		.section	.text.inv_icm207xx_set_accel_fullscale,"ax",%progbits
+ 681              		.align	1
+ 682              		.global	inv_icm207xx_set_accel_fullscale
+ 683              		.syntax unified
+ 684              		.thumb
+ 685              		.thumb_func
+ 686              		.fpu fpv4-sp-d16
+ 688              	inv_icm207xx_set_accel_fullscale:
+ 689              	.LFB25:
+ 310:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 311:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_accel_fullscale(struct inv_icm207xx * s, int level)
+ 312:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 690              		.loc 1 312 0
+ 691              		.cfi_startproc
+ARM GAS  /tmp/cciSKlRg.s 			page 20
+
+
+ 692              		@ args = 0, pretend = 0, frame = 0
+ 693              		@ frame_needed = 0, uses_anonymous_args = 0
+ 694              		@ link register save eliminated.
+ 695              	.LVL93:
+ 313:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(level >= NUM_MPU_AFS)
+ 696              		.loc 1 313 0
+ 697 0000 0329     		cmp	r1, #3
+ 698 0002 03DC     		bgt	.L57
+ 314:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 315:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 316:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.accel_fullscale = level;
+ 699              		.loc 1 316 0
+ 700 0004 80F84210 		strb	r1, [r0, #66]
+ 317:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ 701              		.loc 1 317 0
+ 702 0008 0020     		movs	r0, #0
+ 703              	.LVL94:
+ 704 000a 7047     		bx	lr
+ 705              	.LVL95:
+ 706              	.L57:
+ 314:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 707              		.loc 1 314 0
+ 708 000c 6FF00A00 		mvn	r0, #10
+ 709              	.LVL96:
+ 318:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 710              		.loc 1 318 0
+ 711 0010 7047     		bx	lr
+ 712              		.cfi_endproc
+ 713              	.LFE25:
+ 715              		.section	.text.inv_icm207xx_set_accel_ois_fullscale,"ax",%progbits
+ 716              		.align	1
+ 717              		.global	inv_icm207xx_set_accel_ois_fullscale
+ 718              		.syntax unified
+ 719              		.thumb
+ 720              		.thumb_func
+ 721              		.fpu fpv4-sp-d16
+ 723              	inv_icm207xx_set_accel_ois_fullscale:
+ 724              	.LFB26:
+ 319:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 320:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_accel_ois_fullscale(struct inv_icm207xx * s, int level)
+ 321:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 725              		.loc 1 321 0
+ 726              		.cfi_startproc
+ 727              		@ args = 0, pretend = 0, frame = 0
+ 728              		@ frame_needed = 0, uses_anonymous_args = 0
+ 729              		@ link register save eliminated.
+ 730              	.LVL97:
+ 322:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(level >= NUM_MPU_AFS)
+ 731              		.loc 1 322 0
+ 732 0000 0329     		cmp	r1, #3
+ 733 0002 03DC     		bgt	.L60
+ 323:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 324:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 325:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.accel_ois_fullscale = level;
+ 734              		.loc 1 325 0
+ 735 0004 80F84310 		strb	r1, [r0, #67]
+ 326:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ARM GAS  /tmp/cciSKlRg.s 			page 21
+
+
+ 736              		.loc 1 326 0
+ 737 0008 0020     		movs	r0, #0
+ 738              	.LVL98:
+ 739 000a 7047     		bx	lr
+ 740              	.LVL99:
+ 741              	.L60:
+ 323:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 742              		.loc 1 323 0
+ 743 000c 6FF00A00 		mvn	r0, #10
+ 744              	.LVL100:
+ 327:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 745              		.loc 1 327 0
+ 746 0010 7047     		bx	lr
+ 747              		.cfi_endproc
+ 748              	.LFE26:
+ 750              		.section	.text.inv_icm207xx_set_accel_bandwidth,"ax",%progbits
+ 751              		.align	1
+ 752              		.global	inv_icm207xx_set_accel_bandwidth
+ 753              		.syntax unified
+ 754              		.thumb
+ 755              		.thumb_func
+ 756              		.fpu fpv4-sp-d16
+ 758              	inv_icm207xx_set_accel_bandwidth:
+ 759              	.LFB27:
+ 328:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 329:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_accel_bandwidth(struct inv_icm207xx * s, int level)
+ 330:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 760              		.loc 1 330 0
+ 761              		.cfi_startproc
+ 762              		@ args = 0, pretend = 0, frame = 0
+ 763              		@ frame_needed = 0, uses_anonymous_args = 0
+ 764              		@ link register save eliminated.
+ 765              	.LVL101:
+ 331:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(level >= NUM_MPU_ABW)
+ 766              		.loc 1 331 0
+ 767 0000 0729     		cmp	r1, #7
+ 768 0002 03DC     		bgt	.L63
+ 332:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 333:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 334:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.accel_bw = level;
+ 769              		.loc 1 334 0
+ 770 0004 80F84510 		strb	r1, [r0, #69]
+ 335:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ 771              		.loc 1 335 0
+ 772 0008 0020     		movs	r0, #0
+ 773              	.LVL102:
+ 774 000a 7047     		bx	lr
+ 775              	.LVL103:
+ 776              	.L63:
+ 332:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 777              		.loc 1 332 0
+ 778 000c 6FF00A00 		mvn	r0, #10
+ 779              	.LVL104:
+ 336:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 780              		.loc 1 336 0
+ 781 0010 7047     		bx	lr
+ 782              		.cfi_endproc
+ARM GAS  /tmp/cciSKlRg.s 			page 22
+
+
+ 783              	.LFE27:
+ 785              		.section	.text.inv_icm207xx_get_accel_fullscale,"ax",%progbits
+ 786              		.align	1
+ 787              		.global	inv_icm207xx_get_accel_fullscale
+ 788              		.syntax unified
+ 789              		.thumb
+ 790              		.thumb_func
+ 791              		.fpu fpv4-sp-d16
+ 793              	inv_icm207xx_get_accel_fullscale:
+ 794              	.LFB28:
+ 337:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 338:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint8_t inv_icm207xx_get_accel_fullscale(struct inv_icm207xx * s)
+ 339:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 795              		.loc 1 339 0
+ 796              		.cfi_startproc
+ 797              		@ args = 0, pretend = 0, frame = 0
+ 798              		@ frame_needed = 0, uses_anonymous_args = 0
+ 799              		@ link register save eliminated.
+ 800              	.LVL105:
+ 340:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return s->base_state.accel_fullscale;
+ 341:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 801              		.loc 1 341 0
+ 802 0000 90F84200 		ldrb	r0, [r0, #66]	@ zero_extendqisi2
+ 803              	.LVL106:
+ 804 0004 7047     		bx	lr
+ 805              		.cfi_endproc
+ 806              	.LFE28:
+ 808              		.section	.text.inv_icm207xx_get_accel_ois_fullscale,"ax",%progbits
+ 809              		.align	1
+ 810              		.global	inv_icm207xx_get_accel_ois_fullscale
+ 811              		.syntax unified
+ 812              		.thumb
+ 813              		.thumb_func
+ 814              		.fpu fpv4-sp-d16
+ 816              	inv_icm207xx_get_accel_ois_fullscale:
+ 817              	.LFB29:
+ 342:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 343:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint8_t inv_icm207xx_get_accel_ois_fullscale(struct inv_icm207xx * s)
+ 344:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 818              		.loc 1 344 0
+ 819              		.cfi_startproc
+ 820              		@ args = 0, pretend = 0, frame = 0
+ 821              		@ frame_needed = 0, uses_anonymous_args = 0
+ 822              		@ link register save eliminated.
+ 823              	.LVL107:
+ 345:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return s->base_state.accel_ois_fullscale;
+ 346:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 824              		.loc 1 346 0
+ 825 0000 90F84300 		ldrb	r0, [r0, #67]	@ zero_extendqisi2
+ 826              	.LVL108:
+ 827 0004 7047     		bx	lr
+ 828              		.cfi_endproc
+ 829              	.LFE29:
+ 831              		.section	.text.inv_icm207xx_get_accel_bandwidth,"ax",%progbits
+ 832              		.align	1
+ 833              		.global	inv_icm207xx_get_accel_bandwidth
+ 834              		.syntax unified
+ARM GAS  /tmp/cciSKlRg.s 			page 23
+
+
+ 835              		.thumb
+ 836              		.thumb_func
+ 837              		.fpu fpv4-sp-d16
+ 839              	inv_icm207xx_get_accel_bandwidth:
+ 840              	.LFB30:
+ 347:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 348:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint16_t inv_icm207xx_get_accel_bandwidth(struct inv_icm207xx * s)
+ 349:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 841              		.loc 1 349 0
+ 842              		.cfi_startproc
+ 843              		@ args = 0, pretend = 0, frame = 0
+ 844              		@ frame_needed = 0, uses_anonymous_args = 0
+ 845              		@ link register save eliminated.
+ 846              	.LVL109:
+ 350:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return s->base_state.accel_bw;
+ 351:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 847              		.loc 1 351 0
+ 848 0000 90F84500 		ldrb	r0, [r0, #69]	@ zero_extendqisi2
+ 849              	.LVL110:
+ 850 0004 7047     		bx	lr
+ 851              		.cfi_endproc
+ 852              	.LFE30:
+ 854              		.section	.text.inv_icm207xx_gyro_fsr_2_reg,"ax",%progbits
+ 855              		.align	1
+ 856              		.global	inv_icm207xx_gyro_fsr_2_reg
+ 857              		.syntax unified
+ 858              		.thumb
+ 859              		.thumb_func
+ 860              		.fpu fpv4-sp-d16
+ 862              	inv_icm207xx_gyro_fsr_2_reg:
+ 863              	.LFB31:
+ 352:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 353:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_gyro_fsr_2_reg(int32_t fsr)
+ 354:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 864              		.loc 1 354 0
+ 865              		.cfi_startproc
+ 866              		@ args = 0, pretend = 0, frame = 0
+ 867              		@ frame_needed = 0, uses_anonymous_args = 0
+ 868              		@ link register save eliminated.
+ 869              	.LVL111:
+ 355:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	switch(fsr) {
+ 870              		.loc 1 355 0
+ 871 0000 B0F5FA7F 		cmp	r0, #500
+ 872 0004 10D0     		beq	.L74
+ 873 0006 07DD     		ble	.L75
+ 874 0008 B0F57A7F 		cmp	r0, #1000
+ 875 000c 08D0     		beq	.L72
+ 876 000e B0F5FA6F 		cmp	r0, #2000
+ 877 0012 07D1     		bne	.L68
+ 356:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 250:  return MPU_FS_250dps;
+ 357:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 500:  return MPU_FS_500dps;
+ 358:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 1000: return MPU_FS_1000dps;
+ 359:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 2000: return MPU_FS_2000dps;
+ 878              		.loc 1 359 0
+ 879 0014 0320     		movs	r0, #3
+ 880              	.LVL112:
+ 881 0016 7047     		bx	lr
+ARM GAS  /tmp/cciSKlRg.s 			page 24
+
+
+ 882              	.LVL113:
+ 883              	.L75:
+ 355:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	switch(fsr) {
+ 884              		.loc 1 355 0
+ 885 0018 FA28     		cmp	r0, #250
+ 886 001a 03D1     		bne	.L68
+ 356:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 250:  return MPU_FS_250dps;
+ 887              		.loc 1 356 0
+ 888 001c 0020     		movs	r0, #0
+ 889              	.LVL114:
+ 890 001e 7047     		bx	lr
+ 891              	.LVL115:
+ 892              	.L72:
+ 358:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 2000: return MPU_FS_2000dps;
+ 893              		.loc 1 358 0
+ 894 0020 0220     		movs	r0, #2
+ 895              	.LVL116:
+ 896 0022 7047     		bx	lr
+ 897              	.LVL117:
+ 898              	.L68:
+ 360:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 361:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 31: 
+ 362:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 32:   return MPU_FS_31dps;
+ 363:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 62:   
+ 364:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 63:   return MPU_FS_62dps;
+ 365:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 125:  return MPU_FS_125dps;
+ 366:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 367:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	default:   return NUM_MPU_GFS;
+ 899              		.loc 1 367 0
+ 900 0024 0420     		movs	r0, #4
+ 901              	.LVL118:
+ 902 0026 7047     		bx	lr
+ 903              	.LVL119:
+ 904              	.L74:
+ 357:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case 1000: return MPU_FS_1000dps;
+ 905              		.loc 1 357 0
+ 906 0028 0120     		movs	r0, #1
+ 907              	.LVL120:
+ 368:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 369:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 908              		.loc 1 369 0
+ 909 002a 7047     		bx	lr
+ 910              		.cfi_endproc
+ 911              	.LFE31:
+ 913              		.section	.text.inv_icm207xx_reg_2_gyro_fsr,"ax",%progbits
+ 914              		.align	1
+ 915              		.global	inv_icm207xx_reg_2_gyro_fsr
+ 916              		.syntax unified
+ 917              		.thumb
+ 918              		.thumb_func
+ 919              		.fpu fpv4-sp-d16
+ 921              	inv_icm207xx_reg_2_gyro_fsr:
+ 922              	.LFB32:
+ 370:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 371:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_reg_2_gyro_fsr(uint8_t reg)
+ 372:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 923              		.loc 1 372 0
+ARM GAS  /tmp/cciSKlRg.s 			page 25
+
+
+ 924              		.cfi_startproc
+ 925              		@ args = 0, pretend = 0, frame = 0
+ 926              		@ frame_needed = 0, uses_anonymous_args = 0
+ 927              		@ link register save eliminated.
+ 928              	.LVL121:
+ 373:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	switch(reg) {
+ 929              		.loc 1 373 0
+ 930 0000 0328     		cmp	r0, #3
+ 931 0002 0BD8     		bhi	.L77
+ 932 0004 DFE800F0 		tbb	[pc, r0]
+ 933              	.L79:
+ 934 0008 02       		.byte	(.L78-.L79)/2
+ 935 0009 0D       		.byte	(.L83-.L79)/2
+ 936 000a 04       		.byte	(.L81-.L79)/2
+ 937 000b 07       		.byte	(.L82-.L79)/2
+ 938              		.p2align 1
+ 939              	.L78:
+ 374:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_250dps:  return 250;
+ 940              		.loc 1 374 0
+ 941 000c FA20     		movs	r0, #250
+ 942              	.LVL122:
+ 943 000e 7047     		bx	lr
+ 944              	.LVL123:
+ 945              	.L81:
+ 375:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_500dps:  return 500;
+ 376:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_1000dps: return 1000;
+ 946              		.loc 1 376 0
+ 947 0010 4FF47A70 		mov	r0, #1000
+ 948              	.LVL124:
+ 949 0014 7047     		bx	lr
+ 950              	.LVL125:
+ 951              	.L82:
+ 377:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_2000dps: return 2000;
+ 952              		.loc 1 377 0
+ 953 0016 4FF4FA60 		mov	r0, #2000
+ 954              	.LVL126:
+ 955 001a 7047     		bx	lr
+ 956              	.LVL127:
+ 957              	.L77:
+ 378:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 379:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_31dps:   return 31;
+ 380:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_62dps:   return 62;
+ 381:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_125dps:  return 125;
+ 382:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 383:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	default:             return -1;
+ 958              		.loc 1 383 0
+ 959 001c 4FF0FF30 		mov	r0, #-1
+ 960              	.LVL128:
+ 961 0020 7047     		bx	lr
+ 962              	.LVL129:
+ 963              	.L83:
+ 375:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	case MPU_FS_1000dps: return 1000;
+ 964              		.loc 1 375 0
+ 965 0022 4FF4FA70 		mov	r0, #500
+ 966              	.LVL130:
+ 384:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 385:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ARM GAS  /tmp/cciSKlRg.s 			page 26
+
+
+ 967              		.loc 1 385 0
+ 968 0026 7047     		bx	lr
+ 969              		.cfi_endproc
+ 970              	.LFE32:
+ 972              		.section	.text.inv_icm207xx_set_gyro_fullscale,"ax",%progbits
+ 973              		.align	1
+ 974              		.global	inv_icm207xx_set_gyro_fullscale
+ 975              		.syntax unified
+ 976              		.thumb
+ 977              		.thumb_func
+ 978              		.fpu fpv4-sp-d16
+ 980              	inv_icm207xx_set_gyro_fullscale:
+ 981              	.LFB33:
+ 386:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 387:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_gyro_fullscale(struct inv_icm207xx * s, int level)
+ 388:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 982              		.loc 1 388 0
+ 983              		.cfi_startproc
+ 984              		@ args = 0, pretend = 0, frame = 0
+ 985              		@ frame_needed = 0, uses_anonymous_args = 0
+ 986              		@ link register save eliminated.
+ 987              	.LVL131:
+ 389:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(level >= NUM_MPU_GFS)
+ 988              		.loc 1 389 0
+ 989 0000 0329     		cmp	r1, #3
+ 990 0002 03DC     		bgt	.L86
+ 390:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 391:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 392:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.gyro_fullscale = level;
+ 991              		.loc 1 392 0
+ 992 0004 80F84010 		strb	r1, [r0, #64]
+ 393:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ 993              		.loc 1 393 0
+ 994 0008 0020     		movs	r0, #0
+ 995              	.LVL132:
+ 996 000a 7047     		bx	lr
+ 997              	.LVL133:
+ 998              	.L86:
+ 390:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 999              		.loc 1 390 0
+ 1000 000c 6FF00A00 		mvn	r0, #10
+ 1001              	.LVL134:
+ 394:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1002              		.loc 1 394 0
+ 1003 0010 7047     		bx	lr
+ 1004              		.cfi_endproc
+ 1005              	.LFE33:
+ 1007              		.section	.text.inv_icm207xx_set_gyro_ois_fullscale,"ax",%progbits
+ 1008              		.align	1
+ 1009              		.global	inv_icm207xx_set_gyro_ois_fullscale
+ 1010              		.syntax unified
+ 1011              		.thumb
+ 1012              		.thumb_func
+ 1013              		.fpu fpv4-sp-d16
+ 1015              	inv_icm207xx_set_gyro_ois_fullscale:
+ 1016              	.LFB34:
+ 395:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ARM GAS  /tmp/cciSKlRg.s 			page 27
+
+
+ 396:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_gyro_ois_fullscale(struct inv_icm207xx * s, int level)
+ 397:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 1017              		.loc 1 397 0
+ 1018              		.cfi_startproc
+ 1019              		@ args = 0, pretend = 0, frame = 0
+ 1020              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1021              		@ link register save eliminated.
+ 1022              	.LVL135:
+ 398:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(level >= NUM_MPU_GFS)
+ 1023              		.loc 1 398 0
+ 1024 0000 0329     		cmp	r1, #3
+ 1025 0002 03DC     		bgt	.L89
+ 399:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 400:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 401:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.gyro_ois_fullscale = level;
+ 1026              		.loc 1 401 0
+ 1027 0004 80F84110 		strb	r1, [r0, #65]
+ 402:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ 1028              		.loc 1 402 0
+ 1029 0008 0020     		movs	r0, #0
+ 1030              	.LVL136:
+ 1031 000a 7047     		bx	lr
+ 1032              	.LVL137:
+ 1033              	.L89:
+ 399:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 1034              		.loc 1 399 0
+ 1035 000c 6FF00A00 		mvn	r0, #10
+ 1036              	.LVL138:
+ 403:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1037              		.loc 1 403 0
+ 1038 0010 7047     		bx	lr
+ 1039              		.cfi_endproc
+ 1040              	.LFE34:
+ 1042              		.section	.text.inv_icm207xx_set_gyro_bandwidth,"ax",%progbits
+ 1043              		.align	1
+ 1044              		.global	inv_icm207xx_set_gyro_bandwidth
+ 1045              		.syntax unified
+ 1046              		.thumb
+ 1047              		.thumb_func
+ 1048              		.fpu fpv4-sp-d16
+ 1050              	inv_icm207xx_set_gyro_bandwidth:
+ 1051              	.LFB35:
+ 404:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 405:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_gyro_bandwidth(struct inv_icm207xx * s, int level)
+ 406:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 1052              		.loc 1 406 0
+ 1053              		.cfi_startproc
+ 1054              		@ args = 0, pretend = 0, frame = 0
+ 1055              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1056              		@ link register save eliminated.
+ 1057              	.LVL139:
+ 407:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	if(level >= NUM_MPU_GBW)
+ 1058              		.loc 1 407 0
+ 1059 0000 0629     		cmp	r1, #6
+ 1060 0002 03DC     		bgt	.L92
+ 408:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 409:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ARM GAS  /tmp/cciSKlRg.s 			page 28
+
+
+ 410:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.gyro_bw = level;
+ 1061              		.loc 1 410 0
+ 1062 0004 80F84410 		strb	r1, [r0, #68]
+ 411:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 412:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ 1063              		.loc 1 412 0
+ 1064 0008 0020     		movs	r0, #0
+ 1065              	.LVL140:
+ 1066 000a 7047     		bx	lr
+ 1067              	.LVL141:
+ 1068              	.L92:
+ 408:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		return INV_ERROR_BAD_ARG;
+ 1069              		.loc 1 408 0
+ 1070 000c 6FF00A00 		mvn	r0, #10
+ 1071              	.LVL142:
+ 413:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1072              		.loc 1 413 0
+ 1073 0010 7047     		bx	lr
+ 1074              		.cfi_endproc
+ 1075              	.LFE35:
+ 1077              		.section	.text.inv_icm207xx_initialize,"ax",%progbits
+ 1078              		.align	1
+ 1079              		.global	inv_icm207xx_initialize
+ 1080              		.syntax unified
+ 1081              		.thumb
+ 1082              		.thumb_func
+ 1083              		.fpu fpv4-sp-d16
+ 1085              	inv_icm207xx_initialize:
+ 1086              	.LFB16:
+  62:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int result = 0;
+ 1087              		.loc 1 62 0
+ 1088              		.cfi_startproc
+ 1089              		@ args = 0, pretend = 0, frame = 8
+ 1090              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1091              	.LVL143:
+ 1092 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 1093              	.LCFI9:
+ 1094              		.cfi_def_cfa_offset 20
+ 1095              		.cfi_offset 4, -20
+ 1096              		.cfi_offset 5, -16
+ 1097              		.cfi_offset 6, -12
+ 1098              		.cfi_offset 7, -8
+ 1099              		.cfi_offset 14, -4
+ 1100 0002 83B0     		sub	sp, sp, #12
+ 1101              	.LCFI10:
+ 1102              		.cfi_def_cfa_offset 32
+ 1103 0004 0446     		mov	r4, r0
+ 1104              	.LVL144:
+  64:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	unsigned i;
+ 1105              		.loc 1 64 0
+ 1106 0006 0023     		movs	r3, #0
+ 1107 0008 8DF80730 		strb	r3, [sp, #7]
+  68:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1108              		.loc 1 68 0
+ 1109 000c 4363     		str	r3, [r0, #52]	@ unaligned
+ 1110 000e 8363     		str	r3, [r0, #56]	@ unaligned
+ 1111 0010 C363     		str	r3, [r0, #60]	@ unaligned
+ARM GAS  /tmp/cciSKlRg.s 			page 29
+
+
+ 1112 0012 0364     		str	r3, [r0, #64]	@ unaligned
+ 1113 0014 4364     		str	r3, [r0, #68]	@ unaligned
+ 1114 0016 8364     		str	r3, [r0, #72]	@ unaligned
+ 1115 0018 A0F84C30 		strh	r3, [r0, #76]	@ unaligned
+  70:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.pwr_mgmt_2 = BIT_PWR_ACCEL_STBY | BIT_PWR_GYRO_STBY;
+ 1116              		.loc 1 70 0
+ 1117 001c 90F84620 		ldrb	r2, [r0, #70]	@ zero_extendqisi2
+ 1118 0020 42F00102 		orr	r2, r2, #1
+ 1119 0024 80F84620 		strb	r2, [r0, #70]
+  71:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->power_state = PowerStateSleepState;
+ 1120              		.loc 1 71 0
+ 1121 0028 3F22     		movs	r2, #63
+ 1122 002a 80F83620 		strb	r2, [r0, #54]
+  72:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->wom_enabled = 0;
+ 1123              		.loc 1 72 0
+ 1124 002e 80F84E30 		strb	r3, [r0, #78]
+  73:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1125              		.loc 1 73 0
+ 1126 0032 80F86730 		strb	r3, [r0, #103]
+ 1127              	.LVL145:
+  75:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		s->requested_odr[i] = ODR_MIN_DELAY;
+ 1128              		.loc 1 75 0
+ 1129 0036 06E0     		b	.L94
+ 1130              	.LVL146:
+ 1131              	.L95:
+  76:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 1132              		.loc 1 76 0 discriminator 3
+ 1133 0038 03F12802 		add	r2, r3, #40
+ 1134 003c 04EB4202 		add	r2, r4, r2, lsl #1
+ 1135 0040 0121     		movs	r1, #1
+ 1136 0042 9180     		strh	r1, [r2, #4]	@ movhi
+  75:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		s->requested_odr[i] = ODR_MIN_DELAY;
+ 1137              		.loc 1 75 0 discriminator 3
+ 1138 0044 0B44     		add	r3, r3, r1
+ 1139              	.LVL147:
+ 1140              	.L94:
+  75:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		s->requested_odr[i] = ODR_MIN_DELAY;
+ 1141              		.loc 1 75 0 is_stmt 0 discriminator 1
+ 1142 0046 052B     		cmp	r3, #5
+ 1143 0048 F6D9     		bls	.L95
+  79:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1144              		.loc 1 79 0 is_stmt 1
+ 1145 004a 2046     		mov	r0, r4
+ 1146              	.LVL148:
+ 1147 004c FFF7FEFF 		bl	inv_icm207xx_soft_reset
+ 1148              	.LVL149:
+ 1149 0050 0546     		mov	r5, r0
+ 1150              	.LVL150:
+  81:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= serif_write(s, MPUREG_PWR_MGMT_1, 1, &s->base_state.pwr_mgmt_1);
+ 1151              		.loc 1 81 0
+ 1152 0052 0122     		movs	r2, #1
+ 1153 0054 2346     		mov	r3, r4
+ 1154 0056 03F8352F 		strb	r2, [r3, #53]!
+  82:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1155              		.loc 1 82 0
+ 1156 005a 6B21     		movs	r1, #107
+ 1157 005c 2046     		mov	r0, r4
+ARM GAS  /tmp/cciSKlRg.s 			page 30
+
+
+ 1158              	.LVL151:
+ 1159 005e FFF7FEFF 		bl	serif_write
+ 1160              	.LVL152:
+ 1161 0062 0543     		orrs	r5, r5, r0
+ 1162              	.LVL153:
+  85:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		s->base_state.user_ctrl |= BIT_I2C_IF_DIS;
+ 1163              		.loc 1 85 0
+ 1164 0064 6369     		ldr	r3, [r4, #20]
+ 1165 0066 2BB1     		cbz	r3, .L96
+  86:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 1166              		.loc 1 86 0
+ 1167 0068 94F83930 		ldrb	r3, [r4, #57]	@ zero_extendqisi2
+ 1168 006c 43F01003 		orr	r3, r3, #16
+ 1169 0070 84F83930 		strb	r3, [r4, #57]
+ 1170              	.L96:
+  88:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 1171              		.loc 1 88 0
+ 1172 0074 04F13903 		add	r3, r4, #57
+ 1173 0078 0122     		movs	r2, #1
+ 1174 007a 6A21     		movs	r1, #106
+ 1175 007c 2046     		mov	r0, r4
+ 1176 007e FFF7FEFF 		bl	inv_icm207xx_mems_write_reg
+ 1177              	.LVL154:
+ 1178 0082 0543     		orrs	r5, r5, r0
+ 1179              	.LVL155:
+  91:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1180              		.loc 1 91 0
+ 1181 0084 04F13603 		add	r3, r4, #54
+ 1182 0088 0122     		movs	r2, #1
+ 1183 008a 6C21     		movs	r1, #108
+ 1184 008c 2046     		mov	r0, r4
+ 1185 008e FFF7FEFF 		bl	serif_write
+ 1186              	.LVL156:
+ 1187 0092 0543     		orrs	r5, r5, r0
+ 1188              	.LVL157:
+  93:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1189              		.loc 1 93 0
+ 1190 0094 0DF10703 		add	r3, sp, #7
+ 1191 0098 0122     		movs	r2, #1
+ 1192 009a 7521     		movs	r1, #117
+ 1193 009c 2046     		mov	r0, r4
+ 1194 009e FFF7FEFF 		bl	inv_icm207xx_mems_read_reg
+ 1195              	.LVL158:
+ 1196 00a2 0543     		orrs	r5, r5, r0
+ 1197              	.LVL159:
+  96:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	s->base_state.gyro_averaging = 1;  //Change this value if higher sensor sample avergaing is requir
+ 1198              		.loc 1 96 0
+ 1199 00a4 0126     		movs	r6, #1
+ 1200 00a6 84F83F60 		strb	r6, [r4, #63]
+  97:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	inv_icm207xx_set_divider(s, FIFO_DIVIDER);       //Initial sampling rate BASE_SAMPLE_RATE/(9+1) = 
+ 1201              		.loc 1 97 0
+ 1202 00aa 84F83E60 		strb	r6, [r4, #62]
+  98:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_gyro_fullscale(s, MPU_FS_2000dps);
+ 1203              		.loc 1 98 0
+ 1204 00ae 0921     		movs	r1, #9
+ 1205 00b0 2046     		mov	r0, r4
+ 1206 00b2 FFF7FEFF 		bl	inv_icm207xx_set_divider
+ARM GAS  /tmp/cciSKlRg.s 			page 31
+
+
+ 1207              	.LVL160:
+  99:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_set_accel_fullscale(s, MPU_FS_4G);
+ 1208              		.loc 1 99 0
+ 1209 00b6 0321     		movs	r1, #3
+ 1210 00b8 2046     		mov	r0, r4
+ 1211 00ba FFF7FEFF 		bl	inv_icm207xx_set_gyro_fullscale
+ 1212              	.LVL161:
+ 1213 00be 0543     		orrs	r5, r5, r0
+ 1214              	.LVL162:
+ 100:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 1215              		.loc 1 100 0
+ 1216 00c0 3146     		mov	r1, r6
+ 1217 00c2 2046     		mov	r0, r4
+ 1218 00c4 FFF7FEFF 		bl	inv_icm207xx_set_accel_fullscale
+ 1219              	.LVL163:
+ 1220 00c8 0543     		orrs	r5, r5, r0
+ 1221              	.LVL164:
+ 106:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// set gyr bw at 176 to be inline with first config
+ 1222              		.loc 1 106 0
+ 1223 00ca 0721     		movs	r1, #7
+ 1224 00cc 2046     		mov	r0, r4
+ 1225 00ce FFF7FEFF 		bl	inv_icm207xx_set_accel_bandwidth
+ 1226              	.LVL165:
+ 1227 00d2 0543     		orrs	r5, r5, r0
+ 1228              	.LVL166:
+ 108:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1229              		.loc 1 108 0
+ 1230 00d4 3146     		mov	r1, r6
+ 1231 00d6 2046     		mov	r0, r4
+ 1232 00d8 FFF7FEFF 		bl	inv_icm207xx_set_gyro_bandwidth
+ 1233              	.LVL167:
+ 1234 00dc 0543     		orrs	r5, r5, r0
+ 1235              	.LVL168:
+ 112:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1236              		.loc 1 112 0
+ 1237 00de 2046     		mov	r0, r4
+ 1238 00e0 FFF7FEFF 		bl	inv_icm207xx_disable_fifo
+ 1239              	.LVL169:
+ 1240 00e4 0543     		orrs	r5, r5, r0
+ 1241              	.LVL170:
+ 116:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_ACCEL_CONFIG_2, 1, &data);
+ 1242              		.loc 1 116 0
+ 1243 00e6 C027     		movs	r7, #192
+ 1244 00e8 8DF80770 		strb	r7, [sp, #7]
+ 117:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 1245              		.loc 1 117 0
+ 1246 00ec 0DF10703 		add	r3, sp, #7
+ 1247 00f0 3246     		mov	r2, r6
+ 1248 00f2 1D21     		movs	r1, #29
+ 1249 00f4 2046     		mov	r0, r4
+ 1250 00f6 FFF7FEFF 		bl	inv_icm207xx_mems_write_reg
+ 1251              	.LVL171:
+ 1252 00fa 0543     		orrs	r5, r5, r0
+ 1253              	.LVL172:
+ 123:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_CONFIG, 1, &data);
+ 1254              		.loc 1 123 0
+ 1255 00fc 8DF80770 		strb	r7, [sp, #7]
+ARM GAS  /tmp/cciSKlRg.s 			page 32
+
+
+ 124:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	
+ 1256              		.loc 1 124 0
+ 1257 0100 0DF10703 		add	r3, sp, #7
+ 1258 0104 3246     		mov	r2, r6
+ 1259 0106 1A21     		movs	r1, #26
+ 1260 0108 2046     		mov	r0, r4
+ 1261 010a FFF7FEFF 		bl	inv_icm207xx_mems_write_reg
+ 1262              	.LVL173:
+ 1263 010e 0543     		orrs	r5, r5, r0
+ 1264              	.LVL174:
+ 127:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 		inv_icm207xx_set_slave_compass_id(s);
+ 1265              		.loc 1 127 0
+ 1266 0110 94F8D430 		ldrb	r3, [r4, #212]	@ zero_extendqisi2
+ 1267 0114 53B9     		cbnz	r3, .L99
+ 1268              	.L97:
+ 133:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_INT_ENABLE, 1, &data); // Enable DRDY Interrupt
+ 1269              		.loc 1 133 0
+ 1270 0116 0122     		movs	r2, #1
+ 1271 0118 02AB     		add	r3, sp, #8
+ 1272 011a 03F8012D 		strb	r2, [r3, #-1]!
+ 134:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1273              		.loc 1 134 0
+ 1274 011e 3821     		movs	r1, #56
+ 1275 0120 2046     		mov	r0, r4
+ 1276 0122 FFF7FEFF 		bl	inv_icm207xx_mems_write_reg
+ 1277              	.LVL175:
+ 137:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 1278              		.loc 1 137 0
+ 1279 0126 2843     		orrs	r0, r0, r5
+ 1280              	.LVL176:
+ 1281 0128 03B0     		add	sp, sp, #12
+ 1282              	.LCFI11:
+ 1283              		.cfi_remember_state
+ 1284              		.cfi_def_cfa_offset 20
+ 1285              		@ sp needed
+ 1286 012a F0BD     		pop	{r4, r5, r6, r7, pc}
+ 1287              	.LVL177:
+ 1288              	.L99:
+ 1289              	.LCFI12:
+ 1290              		.cfi_restore_state
+ 128:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	}
+ 1291              		.loc 1 128 0
+ 1292 012c 2046     		mov	r0, r4
+ 1293 012e FFF7FEFF 		bl	inv_icm207xx_set_slave_compass_id
+ 1294              	.LVL178:
+ 1295 0132 F0E7     		b	.L97
+ 1296              		.cfi_endproc
+ 1297              	.LFE16:
+ 1299              		.section	.text.inv_icm207xx_get_gyro_fullscale,"ax",%progbits
+ 1300              		.align	1
+ 1301              		.global	inv_icm207xx_get_gyro_fullscale
+ 1302              		.syntax unified
+ 1303              		.thumb
+ 1304              		.thumb_func
+ 1305              		.fpu fpv4-sp-d16
+ 1307              	inv_icm207xx_get_gyro_fullscale:
+ 1308              	.LFB36:
+ARM GAS  /tmp/cciSKlRg.s 			page 33
+
+
+ 414:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 415:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint8_t inv_icm207xx_get_gyro_fullscale(struct inv_icm207xx * s)
+ 416:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 1309              		.loc 1 416 0
+ 1310              		.cfi_startproc
+ 1311              		@ args = 0, pretend = 0, frame = 0
+ 1312              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1313              		@ link register save eliminated.
+ 1314              	.LVL179:
+ 417:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return s->base_state.gyro_fullscale;
+ 418:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1315              		.loc 1 418 0
+ 1316 0000 90F84000 		ldrb	r0, [r0, #64]	@ zero_extendqisi2
+ 1317              	.LVL180:
+ 1318 0004 7047     		bx	lr
+ 1319              		.cfi_endproc
+ 1320              	.LFE36:
+ 1322              		.section	.text.inv_icm207xx_get_gyro_ois_fullscale,"ax",%progbits
+ 1323              		.align	1
+ 1324              		.global	inv_icm207xx_get_gyro_ois_fullscale
+ 1325              		.syntax unified
+ 1326              		.thumb
+ 1327              		.thumb_func
+ 1328              		.fpu fpv4-sp-d16
+ 1330              	inv_icm207xx_get_gyro_ois_fullscale:
+ 1331              	.LFB37:
+ 419:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 420:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint8_t inv_icm207xx_get_gyro_ois_fullscale(struct inv_icm207xx * s)
+ 421:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 1332              		.loc 1 421 0
+ 1333              		.cfi_startproc
+ 1334              		@ args = 0, pretend = 0, frame = 0
+ 1335              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1336              		@ link register save eliminated.
+ 1337              	.LVL181:
+ 422:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return s->base_state.gyro_ois_fullscale;
+ 423:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1338              		.loc 1 423 0
+ 1339 0000 90F84100 		ldrb	r0, [r0, #65]	@ zero_extendqisi2
+ 1340              	.LVL182:
+ 1341 0004 7047     		bx	lr
+ 1342              		.cfi_endproc
+ 1343              	.LFE37:
+ 1345              		.section	.text.inv_icm207xx_get_gyro_bandwidth,"ax",%progbits
+ 1346              		.align	1
+ 1347              		.global	inv_icm207xx_get_gyro_bandwidth
+ 1348              		.syntax unified
+ 1349              		.thumb
+ 1350              		.thumb_func
+ 1351              		.fpu fpv4-sp-d16
+ 1353              	inv_icm207xx_get_gyro_bandwidth:
+ 1354              	.LFB38:
+ 424:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 425:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** uint16_t inv_icm207xx_get_gyro_bandwidth(struct inv_icm207xx * s)
+ 426:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 1355              		.loc 1 426 0
+ 1356              		.cfi_startproc
+ARM GAS  /tmp/cciSKlRg.s 			page 34
+
+
+ 1357              		@ args = 0, pretend = 0, frame = 0
+ 1358              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1359              		@ link register save eliminated.
+ 1360              	.LVL183:
+ 427:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return s->base_state.gyro_bw;
+ 428:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1361              		.loc 1 428 0
+ 1362 0000 90F84400 		ldrb	r0, [r0, #68]	@ zero_extendqisi2
+ 1363              	.LVL184:
+ 1364 0004 7047     		bx	lr
+ 1365              		.cfi_endproc
+ 1366              	.LFE38:
+ 1368              		.section	.text.inv_icm207xx_is_advanced_features_supported,"ax",%progbits
+ 1369              		.align	1
+ 1370              		.global	inv_icm207xx_is_advanced_features_supported
+ 1371              		.syntax unified
+ 1372              		.thumb
+ 1373              		.thumb_func
+ 1374              		.fpu fpv4-sp-d16
+ 1376              	inv_icm207xx_is_advanced_features_supported:
+ 1377              	.LFB39:
+ 429:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 430:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_is_advanced_features_supported(void)
+ 431:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 1378              		.loc 1 431 0
+ 1379              		.cfi_startproc
+ 1380              		@ args = 0, pretend = 0, frame = 0
+ 1381              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1382              		@ link register save eliminated.
+ 432:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 433:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// only the icm20690 supports OIS sensor and advanced FSYNC feature
+ 434:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 1;
+ 435:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #else
+ 436:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return 0;
+ 437:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 438:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1383              		.loc 1 438 0
+ 1384 0000 0020     		movs	r0, #0
+ 1385 0002 7047     		bx	lr
+ 1386              		.cfi_endproc
+ 1387              	.LFE39:
+ 1389              		.section	.text.inv_icm207xx_set_fsync_bit_location,"ax",%progbits
+ 1390              		.align	1
+ 1391              		.global	inv_icm207xx_set_fsync_bit_location
+ 1392              		.syntax unified
+ 1393              		.thumb
+ 1394              		.thumb_func
+ 1395              		.fpu fpv4-sp-d16
+ 1397              	inv_icm207xx_set_fsync_bit_location:
+ 1398              	.LFB40:
+ 439:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 440:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** int inv_icm207xx_set_fsync_bit_location(struct inv_icm207xx * s, int bit_location)
+ 441:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** {
+ 1399              		.loc 1 441 0
+ 1400              		.cfi_startproc
+ 1401              		@ args = 0, pretend = 0, frame = 0
+ 1402              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/cciSKlRg.s 			page 35
+
+
+ 1403              		@ link register save eliminated.
+ 1404              	.LVL185:
+ 442:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	int result = 0;
+ 443:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 444:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	uint8_t bank_sel, config_reg;
+ 445:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 446:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// set as CFG bank
+ 447:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	bank_sel = BIT_CONFIG_BANK;
+ 448:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, REG_CFG_USER_BANK_SEL, 1, &bank_sel);
+ 449:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 450:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// enable the FSYNC ODR delay counter read by external interface - needed as this bit is set to 1 
+ 451:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_read_reg(s, REG_INTOSC_CTRL_NEW, 1, &config_reg);
+ 452:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	config_reg &= ~BIT_DELAY_TIME_RD_DISABLE;
+ 453:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, REG_INTOSC_CTRL_NEW, 1, &config_reg);
+ 454:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 455:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// enable the FSYNC ODR delay counter configuration 
+ 456:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_read_reg(s, MPUREG_ACC_CTRL_NEW0, 1, &config_reg);
+ 457:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	config_reg |= BIT_ODR_DLY_TIME_EN_CFG;
+ 458:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_ACC_CTRL_NEW0, 1, &config_reg);
+ 459:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 460:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// set USR bank
+ 461:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	bank_sel = BIT_USER_BANK;
+ 462:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, REG_CFG_USER_BANK_SEL, 1, &bank_sel);
+ 463:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 464:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// enable the FSYNC ODR delay counter
+ 465:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_read_reg(s, MPUREG_ANA_CTRL_NEW_1, 1, &config_reg);
+ 466:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	config_reg |= BIT_ODR_DELAY_TIME_EN;
+ 467:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_ANA_CTRL_NEW_1, 1, &config_reg);
+ 468:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 469:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// clear ext_sync_set field bits[5:3]
+ 470:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_read_reg(s, MPUREG_CONFIG, 1, &config_reg);
+ 471:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	config_reg &= ~BITS_EXT_SYNC_SET;
+ 472:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 473:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// enable fsync pin data to be toggled
+ 474:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	// bits[5:3] = 0: Disable FSYNC pin data to be sampled
+ 475:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	//             1: Enables the FSYNC pin data to be sampled at TEMP_OUT_L[0]
+ 476:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	config_reg |= bit_location << BIT_POS_EXT_SYNC_SET;
+ 477:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	result |= inv_icm207xx_mems_write_reg(s, MPUREG_CONFIG, 1, &config_reg);
+ 478:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** #endif
+ 479:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	(void)s, (void)bit_location;
+ 480:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 
+ 481:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** 	return result;
+ 482:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.c **** }
+ 1405              		.loc 1 482 0
+ 1406 0000 0020     		movs	r0, #0
+ 1407              	.LVL186:
+ 1408 0002 7047     		bx	lr
+ 1409              		.cfi_endproc
+ 1410              	.LFE40:
+ 1412              		.text
+ 1413              	.Letext0:
+ 1414              		.file 3 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/machine/_de
+ 1415              		.file 4 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_stdint
+ 1416              		.file 5 "Drivers/Invn/InvBool.h"
+ 1417              		.file 6 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxDefs.h"
+ 1418              		.file 7 "Drivers/Invn/InvError.h"
+ 1419              		.file 8 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSerif.h"
+ARM GAS  /tmp/cciSKlRg.s 			page 36
+
+
+ 1420              		.file 9 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/lock.h"
+ 1421              		.file 10 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_types
+ 1422              		.file 11 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/lib/gcc/arm-none-eabi/7.3.1/incl
+ 1423              		.file 12 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/reent.
+ 1424              		.file 13 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h"
+ 1425              		.file 14 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxCtrl.h"
+ARM GAS  /tmp/cciSKlRg.s 			page 37
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 Icm207xxSetup.c
+     /tmp/cciSKlRg.s:18     .text.serif_read:0000000000000000 $t
+     /tmp/cciSKlRg.s:24     .text.serif_read:0000000000000000 serif_read
+     /tmp/cciSKlRg.s:53     .text.serif_write:0000000000000000 $t
+     /tmp/cciSKlRg.s:59     .text.serif_write:0000000000000000 serif_write
+     /tmp/cciSKlRg.s:87     .text.inv_icm207xx_get_whoami:0000000000000000 $t
+     /tmp/cciSKlRg.s:94     .text.inv_icm207xx_get_whoami:0000000000000000 inv_icm207xx_get_whoami
+     /tmp/cciSKlRg.s:125    .text.inv_icm207xx_get_chip_info:0000000000000000 $t
+     /tmp/cciSKlRg.s:132    .text.inv_icm207xx_get_chip_info:0000000000000000 inv_icm207xx_get_chip_info
+     /tmp/cciSKlRg.s:168    .text.inv_icm207xx_soft_reset:0000000000000000 $t
+     /tmp/cciSKlRg.s:175    .text.inv_icm207xx_soft_reset:0000000000000000 inv_icm207xx_soft_reset
+     /tmp/cciSKlRg.s:256    .text.inv_icm207xx_set_divider:0000000000000000 $t
+     /tmp/cciSKlRg.s:263    .text.inv_icm207xx_set_divider:0000000000000000 inv_icm207xx_set_divider
+     /tmp/cciSKlRg.s:303    .text.inv_icm207xx_set_i2c_mst_dly:0000000000000000 $t
+     /tmp/cciSKlRg.s:310    .text.inv_icm207xx_set_i2c_mst_dly:0000000000000000 inv_icm207xx_set_i2c_mst_dly
+     /tmp/cciSKlRg.s:326    .text.inv_icm207xx_set_chip_power_state:0000000000000000 $t
+     /tmp/cciSKlRg.s:333    .text.inv_icm207xx_set_chip_power_state:0000000000000000 inv_icm207xx_set_chip_power_state
+     /tmp/cciSKlRg.s:517    .text.inv_icm207xx_get_chip_power_state:0000000000000000 $t
+     /tmp/cciSKlRg.s:524    .text.inv_icm207xx_get_chip_power_state:0000000000000000 inv_icm207xx_get_chip_power_state
+     /tmp/cciSKlRg.s:540    .text.inv_icm207xx_get_chip_base_sample_rate:0000000000000000 $t
+     /tmp/cciSKlRg.s:547    .text.inv_icm207xx_get_chip_base_sample_rate:0000000000000000 inv_icm207xx_get_chip_base_sample_rate
+     /tmp/cciSKlRg.s:563    .text.inv_icm207xx_accel_fsr_2_reg:0000000000000000 $t
+     /tmp/cciSKlRg.s:570    .text.inv_icm207xx_accel_fsr_2_reg:0000000000000000 inv_icm207xx_accel_fsr_2_reg
+     /tmp/cciSKlRg.s:622    .text.inv_icm207xx_reg_2_accel_fsr:0000000000000000 $t
+     /tmp/cciSKlRg.s:629    .text.inv_icm207xx_reg_2_accel_fsr:0000000000000000 inv_icm207xx_reg_2_accel_fsr
+     /tmp/cciSKlRg.s:642    .text.inv_icm207xx_reg_2_accel_fsr:0000000000000008 $d
+     /tmp/cciSKlRg.s:646    .text.inv_icm207xx_reg_2_accel_fsr:000000000000000c $t
+     /tmp/cciSKlRg.s:681    .text.inv_icm207xx_set_accel_fullscale:0000000000000000 $t
+     /tmp/cciSKlRg.s:688    .text.inv_icm207xx_set_accel_fullscale:0000000000000000 inv_icm207xx_set_accel_fullscale
+     /tmp/cciSKlRg.s:716    .text.inv_icm207xx_set_accel_ois_fullscale:0000000000000000 $t
+     /tmp/cciSKlRg.s:723    .text.inv_icm207xx_set_accel_ois_fullscale:0000000000000000 inv_icm207xx_set_accel_ois_fullscale
+     /tmp/cciSKlRg.s:751    .text.inv_icm207xx_set_accel_bandwidth:0000000000000000 $t
+     /tmp/cciSKlRg.s:758    .text.inv_icm207xx_set_accel_bandwidth:0000000000000000 inv_icm207xx_set_accel_bandwidth
+     /tmp/cciSKlRg.s:786    .text.inv_icm207xx_get_accel_fullscale:0000000000000000 $t
+     /tmp/cciSKlRg.s:793    .text.inv_icm207xx_get_accel_fullscale:0000000000000000 inv_icm207xx_get_accel_fullscale
+     /tmp/cciSKlRg.s:809    .text.inv_icm207xx_get_accel_ois_fullscale:0000000000000000 $t
+     /tmp/cciSKlRg.s:816    .text.inv_icm207xx_get_accel_ois_fullscale:0000000000000000 inv_icm207xx_get_accel_ois_fullscale
+     /tmp/cciSKlRg.s:832    .text.inv_icm207xx_get_accel_bandwidth:0000000000000000 $t
+     /tmp/cciSKlRg.s:839    .text.inv_icm207xx_get_accel_bandwidth:0000000000000000 inv_icm207xx_get_accel_bandwidth
+     /tmp/cciSKlRg.s:855    .text.inv_icm207xx_gyro_fsr_2_reg:0000000000000000 $t
+     /tmp/cciSKlRg.s:862    .text.inv_icm207xx_gyro_fsr_2_reg:0000000000000000 inv_icm207xx_gyro_fsr_2_reg
+     /tmp/cciSKlRg.s:914    .text.inv_icm207xx_reg_2_gyro_fsr:0000000000000000 $t
+     /tmp/cciSKlRg.s:921    .text.inv_icm207xx_reg_2_gyro_fsr:0000000000000000 inv_icm207xx_reg_2_gyro_fsr
+     /tmp/cciSKlRg.s:934    .text.inv_icm207xx_reg_2_gyro_fsr:0000000000000008 $d
+     /tmp/cciSKlRg.s:938    .text.inv_icm207xx_reg_2_gyro_fsr:000000000000000c $t
+     /tmp/cciSKlRg.s:973    .text.inv_icm207xx_set_gyro_fullscale:0000000000000000 $t
+     /tmp/cciSKlRg.s:980    .text.inv_icm207xx_set_gyro_fullscale:0000000000000000 inv_icm207xx_set_gyro_fullscale
+     /tmp/cciSKlRg.s:1008   .text.inv_icm207xx_set_gyro_ois_fullscale:0000000000000000 $t
+     /tmp/cciSKlRg.s:1015   .text.inv_icm207xx_set_gyro_ois_fullscale:0000000000000000 inv_icm207xx_set_gyro_ois_fullscale
+     /tmp/cciSKlRg.s:1043   .text.inv_icm207xx_set_gyro_bandwidth:0000000000000000 $t
+     /tmp/cciSKlRg.s:1050   .text.inv_icm207xx_set_gyro_bandwidth:0000000000000000 inv_icm207xx_set_gyro_bandwidth
+     /tmp/cciSKlRg.s:1078   .text.inv_icm207xx_initialize:0000000000000000 $t
+     /tmp/cciSKlRg.s:1085   .text.inv_icm207xx_initialize:0000000000000000 inv_icm207xx_initialize
+     /tmp/cciSKlRg.s:1300   .text.inv_icm207xx_get_gyro_fullscale:0000000000000000 $t
+     /tmp/cciSKlRg.s:1307   .text.inv_icm207xx_get_gyro_fullscale:0000000000000000 inv_icm207xx_get_gyro_fullscale
+     /tmp/cciSKlRg.s:1323   .text.inv_icm207xx_get_gyro_ois_fullscale:0000000000000000 $t
+ARM GAS  /tmp/cciSKlRg.s 			page 38
+
+
+     /tmp/cciSKlRg.s:1330   .text.inv_icm207xx_get_gyro_ois_fullscale:0000000000000000 inv_icm207xx_get_gyro_ois_fullscale
+     /tmp/cciSKlRg.s:1346   .text.inv_icm207xx_get_gyro_bandwidth:0000000000000000 $t
+     /tmp/cciSKlRg.s:1353   .text.inv_icm207xx_get_gyro_bandwidth:0000000000000000 inv_icm207xx_get_gyro_bandwidth
+     /tmp/cciSKlRg.s:1369   .text.inv_icm207xx_is_advanced_features_supported:0000000000000000 $t
+     /tmp/cciSKlRg.s:1376   .text.inv_icm207xx_is_advanced_features_supported:0000000000000000 inv_icm207xx_is_advanced_features_supported
+     /tmp/cciSKlRg.s:1390   .text.inv_icm207xx_set_fsync_bit_location:0000000000000000 $t
+     /tmp/cciSKlRg.s:1397   .text.inv_icm207xx_set_fsync_bit_location:0000000000000000 inv_icm207xx_set_fsync_bit_location
+
+UNDEFINED SYMBOLS
+inv_icm207xx_read_reg
+inv_icm207xx_write_reg
+inv_icm207xx_sleep
+inv_icm207xx_mems_write_reg
+inv_icm207xx_sleep_us
+inv_icm207xx_mems_read_reg
+inv_icm207xx_disable_fifo
+inv_icm207xx_set_slave_compass_id

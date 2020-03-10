@@ -1,0 +1,339 @@
+ARM GAS  /tmp/ccIDSnRg.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"ErrorHelper.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.inv_error_str,"ax",%progbits
+  18              		.align	1
+  19              		.global	inv_error_str
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  23              		.fpu fpv4-sp-d16
+  25              	inv_error_str:
+  26              	.LFB0:
+  27              		.file 1 "Src/ErrorHelper.c"
+   1:Src/ErrorHelper.c **** /*
+   2:Src/ErrorHelper.c ****  * ________________________________________________________________________________________________
+   3:Src/ErrorHelper.c ****  * Copyright (c) 2015-2015 InvenSense Inc. All rights reserved.
+   4:Src/ErrorHelper.c ****  *
+   5:Src/ErrorHelper.c ****  * This software, related documentation and any modifications thereto (collectively “Software”)
+   6:Src/ErrorHelper.c ****  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyr
+   7:Src/ErrorHelper.c ****  * and other intellectual property rights laws.
+   8:Src/ErrorHelper.c ****  *
+   9:Src/ErrorHelper.c ****  * InvenSense and its licensors retain all intellectual property and proprietary rights in and to t
+  10:Src/ErrorHelper.c ****  * and any use, reproduction, disclosure or distribution of the Software without an express license
+  11:Src/ErrorHelper.c ****  * from InvenSense is strictly prohibited.
+  12:Src/ErrorHelper.c ****  *
+  13:Src/ErrorHelper.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, THE SOFTWARE IS
+  14:Src/ErrorHelper.c ****  * PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  15:Src/ErrorHelper.c ****  * TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+  16:Src/ErrorHelper.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, IN NO EVENT SHALL
+  17:Src/ErrorHelper.c ****  * INVENSENSE BE LIABLE FOR ANY DIRECT, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR
+  18:Src/ErrorHelper.c ****  * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT
+  19:Src/ErrorHelper.c ****  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  20:Src/ErrorHelper.c ****  * OF THE SOFTWARE.
+  21:Src/ErrorHelper.c ****  * ________________________________________________________________________________________________
+  22:Src/ErrorHelper.c ****  */
+  23:Src/ErrorHelper.c **** 
+  24:Src/ErrorHelper.c **** #include "ErrorHelper.h"
+  25:Src/ErrorHelper.c **** 
+  26:Src/ErrorHelper.c **** const char * inv_error_str(int error)
+  27:Src/ErrorHelper.c **** {
+  28              		.loc 1 27 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/ccIDSnRg.s 			page 2
+
+
+  32              		@ link register save eliminated.
+  33              	.LVL0:
+  28:Src/ErrorHelper.c **** 	switch(error) {
+  34              		.loc 1 28 0
+  35 0000 1030     		adds	r0, r0, #16
+  36              	.LVL1:
+  37 0002 1028     		cmp	r0, #16
+  38 0004 28D8     		bhi	.L2
+  39 0006 DFE800F0 		tbb	[pc, r0]
+  40              	.L4:
+  41 000a 25       		.byte	(.L3-.L4)/2
+  42 000b 23       		.byte	(.L5-.L4)/2
+  43 000c 21       		.byte	(.L6-.L4)/2
+  44 000d 1F       		.byte	(.L7-.L4)/2
+  45 000e 1D       		.byte	(.L8-.L4)/2
+  46 000f 1B       		.byte	(.L9-.L4)/2
+  47 0010 19       		.byte	(.L10-.L4)/2
+  48 0011 17       		.byte	(.L11-.L4)/2
+  49 0012 27       		.byte	(.L2-.L4)/2
+  50 0013 15       		.byte	(.L12-.L4)/2
+  51 0014 13       		.byte	(.L13-.L4)/2
+  52 0015 11       		.byte	(.L14-.L4)/2
+  53 0016 0F       		.byte	(.L15-.L4)/2
+  54 0017 0D       		.byte	(.L16-.L4)/2
+  55 0018 0B       		.byte	(.L17-.L4)/2
+  56 0019 29       		.byte	(.L20-.L4)/2
+  57 001a 09       		.byte	(.L19-.L4)/2
+  58 001b 00       		.p2align 1
+  59              	.L19:
+  29:Src/ErrorHelper.c **** 	case INV_ERROR_SUCCESS:      return "Success";
+  60              		.loc 1 29 0
+  61 001c 1048     		ldr	r0, .L21
+  62              	.LVL2:
+  63 001e 7047     		bx	lr
+  64              	.L17:
+  30:Src/ErrorHelper.c **** 	case INV_ERROR:              return "Unspecified error";
+  31:Src/ErrorHelper.c **** 	case INV_ERROR_NIMPL:        return "Not implemented";
+  65              		.loc 1 31 0
+  66 0020 1048     		ldr	r0, .L21+4
+  67 0022 7047     		bx	lr
+  68              	.L16:
+  32:Src/ErrorHelper.c **** 	case INV_ERROR_TRANSPORT:    return "Transport error";
+  69              		.loc 1 32 0
+  70 0024 1048     		ldr	r0, .L21+8
+  71 0026 7047     		bx	lr
+  72              	.L15:
+  33:Src/ErrorHelper.c **** 	case INV_ERROR_TIMEOUT:      return "Timeout, action did not complete in time";
+  73              		.loc 1 33 0
+  74 0028 1048     		ldr	r0, .L21+12
+  75 002a 7047     		bx	lr
+  76              	.L14:
+  34:Src/ErrorHelper.c **** 	case INV_ERROR_SIZE:         return "Wrong size error";
+  77              		.loc 1 34 0
+  78 002c 1048     		ldr	r0, .L21+16
+  79 002e 7047     		bx	lr
+  80              	.L13:
+  35:Src/ErrorHelper.c **** 	case INV_ERROR_OS:           return "Operating system failure";
+ARM GAS  /tmp/ccIDSnRg.s 			page 3
+
+
+  81              		.loc 1 35 0
+  82 0030 1048     		ldr	r0, .L21+20
+  83 0032 7047     		bx	lr
+  84              	.L12:
+  36:Src/ErrorHelper.c **** 	case INV_ERROR_IO:           return "Input/Output error";
+  85              		.loc 1 36 0
+  86 0034 1048     		ldr	r0, .L21+24
+  87 0036 7047     		bx	lr
+  88              	.L11:
+  37:Src/ErrorHelper.c **** 	case INV_ERROR_MEM: 		 return "Bad allocation";
+  89              		.loc 1 37 0
+  90 0038 1048     		ldr	r0, .L21+28
+  91 003a 7047     		bx	lr
+  92              	.L10:
+  38:Src/ErrorHelper.c **** 	case INV_ERROR_HW:           return "Hardware error";
+  93              		.loc 1 38 0
+  94 003c 1048     		ldr	r0, .L21+32
+  95 003e 7047     		bx	lr
+  96              	.L9:
+  39:Src/ErrorHelper.c **** 	case INV_ERROR_BAD_ARG:      return "Invalid arguments";
+  97              		.loc 1 39 0
+  98 0040 1048     		ldr	r0, .L21+36
+  99 0042 7047     		bx	lr
+ 100              	.L8:
+  40:Src/ErrorHelper.c **** 	case INV_ERROR_UNEXPECTED:   return "Unexpected error";
+ 101              		.loc 1 40 0
+ 102 0044 1048     		ldr	r0, .L21+40
+ 103 0046 7047     		bx	lr
+ 104              	.L7:
+  41:Src/ErrorHelper.c **** 	case INV_ERROR_FILE:         return "Invalid file format";
+ 105              		.loc 1 41 0
+ 106 0048 1048     		ldr	r0, .L21+44
+ 107 004a 7047     		bx	lr
+ 108              	.L6:
+  42:Src/ErrorHelper.c **** 	case INV_ERROR_PATH:         return "Invalid file path";
+ 109              		.loc 1 42 0
+ 110 004c 1048     		ldr	r0, .L21+48
+ 111 004e 7047     		bx	lr
+ 112              	.L5:
+  43:Src/ErrorHelper.c **** 	case INV_ERROR_IMAGE_TYPE:   return "Unknown image type";
+ 113              		.loc 1 43 0
+ 114 0050 1048     		ldr	r0, .L21+52
+ 115 0052 7047     		bx	lr
+ 116              	.L3:
+  44:Src/ErrorHelper.c **** 	case INV_ERROR_WATCHDOG:     return "Watchdog error";
+ 117              		.loc 1 44 0
+ 118 0054 1048     		ldr	r0, .L21+56
+ 119 0056 7047     		bx	lr
+ 120              	.L2:
+  45:Src/ErrorHelper.c **** 	default:                     return "Unknown error";
+ 121              		.loc 1 45 0
+ 122 0058 1048     		ldr	r0, .L21+60
+ 123 005a 7047     		bx	lr
+ 124              	.L20:
+  30:Src/ErrorHelper.c **** 	case INV_ERROR_NIMPL:        return "Not implemented";
+ 125              		.loc 1 30 0
+ 126 005c 1048     		ldr	r0, .L21+64
+ARM GAS  /tmp/ccIDSnRg.s 			page 4
+
+
+  46:Src/ErrorHelper.c **** 	}
+  47:Src/ErrorHelper.c **** }...
+ 127              		.loc 1 47 0
+ 128 005e 7047     		bx	lr
+ 129              	.L22:
+ 130              		.align	2
+ 131              	.L21:
+ 132 0060 00000000 		.word	.LC0
+ 133 0064 1C000000 		.word	.LC2
+ 134 0068 2C000000 		.word	.LC3
+ 135 006c 3C000000 		.word	.LC4
+ 136 0070 68000000 		.word	.LC5
+ 137 0074 7C000000 		.word	.LC6
+ 138 0078 98000000 		.word	.LC7
+ 139 007c AC000000 		.word	.LC8
+ 140 0080 BC000000 		.word	.LC9
+ 141 0084 CC000000 		.word	.LC10
+ 142 0088 E0000000 		.word	.LC11
+ 143 008c F4000000 		.word	.LC12
+ 144 0090 08010000 		.word	.LC13
+ 145 0094 1C010000 		.word	.LC14
+ 146 0098 30010000 		.word	.LC15
+ 147 009c 40010000 		.word	.LC16
+ 148 00a0 08000000 		.word	.LC1
+ 149              		.cfi_endproc
+ 150              	.LFE0:
+ 152              		.section	.rodata.inv_error_str.str1.4,"aMS",%progbits,1
+ 153              		.align	2
+ 154              	.LC0:
+ 155 0000 53756363 		.ascii	"Success\000"
+ 155      65737300 
+ 156              	.LC1:
+ 157 0008 556E7370 		.ascii	"Unspecified error\000"
+ 157      65636966 
+ 157      69656420 
+ 157      6572726F 
+ 157      7200
+ 158 001a 0000     		.space	2
+ 159              	.LC2:
+ 160 001c 4E6F7420 		.ascii	"Not implemented\000"
+ 160      696D706C 
+ 160      656D656E 
+ 160      74656400 
+ 161              	.LC3:
+ 162 002c 5472616E 		.ascii	"Transport error\000"
+ 162      73706F72 
+ 162      74206572 
+ 162      726F7200 
+ 163              	.LC4:
+ 164 003c 54696D65 		.ascii	"Timeout, action did not complete in time\000"
+ 164      6F75742C 
+ 164      20616374 
+ 164      696F6E20 
+ 164      64696420 
+ 165 0065 000000   		.space	3
+ 166              	.LC5:
+ 167 0068 57726F6E 		.ascii	"Wrong size error\000"
+ARM GAS  /tmp/ccIDSnRg.s 			page 5
+
+
+ 167      67207369 
+ 167      7A652065 
+ 167      72726F72 
+ 167      00
+ 168 0079 000000   		.space	3
+ 169              	.LC6:
+ 170 007c 4F706572 		.ascii	"Operating system failure\000"
+ 170      6174696E 
+ 170      67207379 
+ 170      7374656D 
+ 170      20666169 
+ 171 0095 000000   		.space	3
+ 172              	.LC7:
+ 173 0098 496E7075 		.ascii	"Input/Output error\000"
+ 173      742F4F75 
+ 173      74707574 
+ 173      20657272 
+ 173      6F7200
+ 174 00ab 00       		.space	1
+ 175              	.LC8:
+ 176 00ac 42616420 		.ascii	"Bad allocation\000"
+ 176      616C6C6F 
+ 176      63617469 
+ 176      6F6E00
+ 177 00bb 00       		.space	1
+ 178              	.LC9:
+ 179 00bc 48617264 		.ascii	"Hardware error\000"
+ 179      77617265 
+ 179      20657272 
+ 179      6F7200
+ 180 00cb 00       		.space	1
+ 181              	.LC10:
+ 182 00cc 496E7661 		.ascii	"Invalid arguments\000"
+ 182      6C696420 
+ 182      61726775 
+ 182      6D656E74 
+ 182      7300
+ 183 00de 0000     		.space	2
+ 184              	.LC11:
+ 185 00e0 556E6578 		.ascii	"Unexpected error\000"
+ 185      70656374 
+ 185      65642065 
+ 185      72726F72 
+ 185      00
+ 186 00f1 000000   		.space	3
+ 187              	.LC12:
+ 188 00f4 496E7661 		.ascii	"Invalid file format\000"
+ 188      6C696420 
+ 188      66696C65 
+ 188      20666F72 
+ 188      6D617400 
+ 189              	.LC13:
+ 190 0108 496E7661 		.ascii	"Invalid file path\000"
+ 190      6C696420 
+ 190      66696C65 
+ 190      20706174 
+ 190      6800
+ARM GAS  /tmp/ccIDSnRg.s 			page 6
+
+
+ 191 011a 0000     		.space	2
+ 192              	.LC14:
+ 193 011c 556E6B6E 		.ascii	"Unknown image type\000"
+ 193      6F776E20 
+ 193      696D6167 
+ 193      65207479 
+ 193      706500
+ 194 012f 00       		.space	1
+ 195              	.LC15:
+ 196 0130 57617463 		.ascii	"Watchdog error\000"
+ 196      68646F67 
+ 196      20657272 
+ 196      6F7200
+ 197 013f 00       		.space	1
+ 198              	.LC16:
+ 199 0140 556E6B6E 		.ascii	"Unknown error\000"
+ 199      6F776E20 
+ 199      6572726F 
+ 199      7200
+ 200              		.text
+ 201              	.Letext0:
+ 202              		.file 2 "Drivers/Invn/InvError.h"
+ARM GAS  /tmp/ccIDSnRg.s 			page 7
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 ErrorHelper.c
+     /tmp/ccIDSnRg.s:18     .text.inv_error_str:0000000000000000 $t
+     /tmp/ccIDSnRg.s:25     .text.inv_error_str:0000000000000000 inv_error_str
+     /tmp/ccIDSnRg.s:41     .text.inv_error_str:000000000000000a $d
+     /tmp/ccIDSnRg.s:132    .text.inv_error_str:0000000000000060 $d
+     /tmp/ccIDSnRg.s:153    .rodata.inv_error_str.str1.4:0000000000000000 $d
+     /tmp/ccIDSnRg.s:58     .text.inv_error_str:000000000000001b $d
+     /tmp/ccIDSnRg.s:58     .text.inv_error_str:000000000000001c $t
+
+NO UNDEFINED SYMBOLS

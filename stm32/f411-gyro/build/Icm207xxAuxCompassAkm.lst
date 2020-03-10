@@ -1,0 +1,262 @@
+ARM GAS  /tmp/ccNplRIg.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"Icm207xxAuxCompassAkm.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.inv_icm207xx_register_aux_compass,"ax",%progbits
+  18              		.align	1
+  19              		.global	inv_icm207xx_register_aux_compass
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  23              		.fpu fpv4-sp-d16
+  25              	inv_icm207xx_register_aux_compass:
+  26              	.LFB12:
+  27              		.file 1 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c"
+   1:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /*
+   2:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * ________________________________________________________________________________________________
+   3:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * Copyright (c) 2015-2015 InvenSense Inc. All rights reserved.
+   4:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  *
+   5:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * This software, related documentation and any modifications thereto (collectively �Software�)
+   6:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyr
+   7:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * and other intellectual property rights laws.
+   8:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  *
+   9:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * InvenSense and its licensors retain all intellectual property and proprietary rights in and to t
+  10:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * and any use, reproduction, disclosure or distribution of the Software without an express license
+  11:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * from InvenSense is strictly prohibited.
+  12:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  *
+  13:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, THE SOFTWARE IS
+  14:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  15:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+  16:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, IN NO EVENT SHALL
+  17:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * INVENSENSE BE LIABLE FOR ANY DIRECT, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR
+  18:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT
+  19:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  20:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * OF THE SOFTWARE.
+  21:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  * ________________________________________________________________________________________________
+  22:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c ****  */
+  23:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  24:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #include "Icm207xxAuxCompassAkm.h"
+  25:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #include "Icm207xxAuxTransport.h"
+  26:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #include "Icm207xxTransport.h"
+  27:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #include "Icm207xxSerif.h"
+  28:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #include "Icm207xxDefs.h"
+  29:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #include "Icm207xx.h"
+  30:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  31:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** //#include "Invn/EmbUtils/Message.h"
+ARM GAS  /tmp/ccNplRIg.s 			page 2
+
+
+  32:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  33:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* AKM definitions */
+  34:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM_ID               0x00
+  35:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM_INFO             0x01
+  36:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM_STATUS           0x02
+  37:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM_MEASURE_DATA     0x03
+  38:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM_MODE             0x0A
+  39:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM_ST_CTRL          0x0C
+  40:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM_SENSITIVITY      0x10
+  41:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AKM8963_CNTL1        0x0A
+  42:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  43:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* AK09911 register definition */
+  44:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09911_DMP_READ    0x3
+  45:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09911_STATUS1     0x10
+  46:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09911_CNTL2       0x31
+  47:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09911_SENSITIVITY 0x60
+  48:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09911_MEASURE_DATA     0x11
+  49:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  50:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* AK09912 register definition */
+  51:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09912_DMP_READ    0x3
+  52:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09912_STATUS1     0x10
+  53:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09912_CNTL1       0x30
+  54:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09912_CNTL2       0x31
+  55:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09912_SENSITIVITY 0x60
+  56:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define REG_AK09912_MEASURE_DATA     0x11
+  57:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  58:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_ID              0x48
+  59:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_MODE_PD	 0x00
+  60:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_MODE_SM	 0x01
+  61:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_MODE_ST	 0x08
+  62:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK09911_MODE_ST	 0x10
+  63:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK09912_MODE_ST	 0x10
+  64:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_MODE_FR	 0x0F
+  65:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK09911_MODE_FR     0x1F
+  66:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK09912_MODE_FR     0x1F
+  67:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_SELF_TEST       0x40
+  68:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_DRDY            0x01
+  69:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM8963_BIT         0x10
+  70:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_STAT_MASK       0x0C
+  71:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  72:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_WHOAMI_9911     0x5
+  73:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_WHOAMI_9912     0x4
+  74:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  75:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* 0.3 uT * (1 << 30) */
+  76:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM8975_SCALE       322122547
+  77:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* 0.6 uT * (1 << 30) */
+  78:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM8972_SCALE       644245094
+  79:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* 0.6 uT * (1 << 30) */
+  80:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM8963_SCALE0      644245094
+  81:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* 0.15 uT * (1 << 30) */
+  82:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM8963_SCALE1      161061273
+  83:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* 0.6 uT * (1 << 30) */
+  84:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK09911_SCALE       644245094
+  85:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* 0.15 uT * (1 << 30) */
+  86:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK09912_SCALE       161061273
+  87:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  88:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM8963_SCALE_SHIFT      4
+ARM GAS  /tmp/ccNplRIg.s 			page 3
+
+
+  89:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_MIN_READ_TIME            (9 * NSEC_PER_MSEC)
+  90:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  91:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* AK09912C NSF */
+  92:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* 0:disable, 1:Low, 2:Middle, 3:High */
+  93:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK9912_NSF  1
+  94:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AK9912_NSF_SHIFT 5
+  95:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+  96:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DEF_ST_COMPASS_WAIT_MIN     (10 * 1000)
+  97:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DEF_ST_COMPASS_WAIT_MAX     (15 * 1000)
+  98:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DEF_ST_COMPASS_TRY_TIMES    10
+  99:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DEF_ST_COMPASS_8963_SHIFT   2
+ 100:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define X                           0
+ 101:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define Y                           1
+ 102:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define Z                           2
+ 103:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 104:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** /* milliseconds between each access */
+ 105:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define AKM_RATE_SCALE       10
+ 106:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 107:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_99_BYTES_DMP   10
+ 108:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #define DATA_AKM_89_BYTES_DMP   9
+ 109:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 110:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 111:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 112:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AKM8975_ST_Lower[3] = {-100, -100, -1000};
+ 113:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AKM8975_ST_Upper[3] = {100, 100, -300};
+ 114:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 115:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AKM8972_ST_Lower[3] = {-50, -50, -500};
+ 116:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AKM8972_ST_Upper[3] = {50, 50, -100};
+ 117:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 118:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AKM8963_ST_Lower[3] = {-200, -200, -3200};
+ 119:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AKM8963_ST_Upper[3] = {200, 200, -800};
+ 120:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 121:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AK09911_ST_Lower[3] = {-30, -30, -400};
+ 122:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AK09911_ST_Upper[3] = {30, 30, -50};
+ 123:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AK09912_ST_Lower[3] = {-200, -200, -1600};
+ 124:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** static const short AK09912_ST_Upper[3] = {200, 200, -400};
+ 125:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 126:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #endif
+ 127:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 128:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** void inv_icm207xx_register_aux_compass(struct inv_icm207xx * s,
+ 129:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		enum inv_icm207xx_compass_id compass_id, uint8_t compass_i2c_addr)
+ 130:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** {
+  28              		.loc 1 130 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  33              	.LVL0:
+ 131:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	/* only for 20690 for now */
+ 132:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 133:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #if (MEMS_CHIP == HW_ICM20690)
+ 134:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	switch(compass_id) {
+ 135:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	case INV_ICM207XX_COMPASS_ID_AK09911:
+ 136:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		s->secondary_state.compass_id       = HW_AK09911;
+ 137:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		s->secondary_state.compass_i2c_addr = compass_i2c_addr;
+ 138:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		break;
+ 139:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	case INV_ICM207XX_COMPASS_ID_AK09912:
+ARM GAS  /tmp/ccNplRIg.s 			page 4
+
+
+ 140:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		s->secondary_state.compass_id       = HW_AK09912;
+ 141:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		s->secondary_state.compass_i2c_addr = compass_i2c_addr;
+ 142:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		break;
+ 143:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	default:
+ 144:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		s->secondary_state.compass_id       = 0;
+ 145:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 		s->secondary_state.compass_i2c_addr = 0;
+ 146:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	}
+ 147:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #else
+ 148:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	s->secondary_state.compass_id       = 0;
+  34              		.loc 1 148 0
+  35 0000 0023     		movs	r3, #0
+  36 0002 80F8D430 		strb	r3, [r0, #212]
+ 149:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	s->secondary_state.compass_i2c_addr = 0;
+  37              		.loc 1 149 0
+  38 0006 80F8D530 		strb	r3, [r0, #213]
+ 150:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 151:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	(void)s, (void)compass_id, (void)compass_i2c_addr;
+ 152:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** #endif
+ 153:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** }
+  39              		.loc 1 153 0
+  40 000a 7047     		bx	lr
+  41              		.cfi_endproc
+  42              	.LFE12:
+  44              		.section	.text.inv_icm207xx_is_compass_registered,"ax",%progbits
+  45              		.align	1
+  46              		.global	inv_icm207xx_is_compass_registered
+  47              		.syntax unified
+  48              		.thumb
+  49              		.thumb_func
+  50              		.fpu fpv4-sp-d16
+  52              	inv_icm207xx_is_compass_registered:
+  53              	.LFB13:
+ 154:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 
+ 155:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** int inv_icm207xx_is_compass_registered(struct inv_icm207xx * s)
+ 156:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** {
+  54              		.loc 1 156 0
+  55              		.cfi_startproc
+  56              		@ args = 0, pretend = 0, frame = 0
+  57              		@ frame_needed = 0, uses_anonymous_args = 0
+  58              		@ link register save eliminated.
+  59              	.LVL1:
+ 157:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** 	return (s->secondary_state.compass_id != 0);
+  60              		.loc 1 157 0
+  61 0000 90F8D400 		ldrb	r0, [r0, #212]	@ zero_extendqisi2
+  62              	.LVL2:
+ 158:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.c **** }
+  63              		.loc 1 158 0
+  64 0004 0030     		adds	r0, r0, #0
+  65 0006 18BF     		it	ne
+  66 0008 0120     		movne	r0, #1
+  67 000a 7047     		bx	lr
+  68              		.cfi_endproc
+  69              	.LFE13:
+  71              		.text
+  72              	.Letext0:
+  73              		.file 2 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/machine/_de
+  74              		.file 3 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_stdint
+ARM GAS  /tmp/ccNplRIg.s 			page 5
+
+
+  75              		.file 4 "Drivers/Invn/InvBool.h"
+  76              		.file 5 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSerif.h"
+  77              		.file 6 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/lock.h"
+  78              		.file 7 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_types.
+  79              		.file 8 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/lib/gcc/arm-none-eabi/7.3.1/inclu
+  80              		.file 9 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/reent.h
+  81              		.file 10 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h"
+  82              		.file 11 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.h"
+ARM GAS  /tmp/ccNplRIg.s 			page 6
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 Icm207xxAuxCompassAkm.c
+     /tmp/ccNplRIg.s:18     .text.inv_icm207xx_register_aux_compass:0000000000000000 $t
+     /tmp/ccNplRIg.s:25     .text.inv_icm207xx_register_aux_compass:0000000000000000 inv_icm207xx_register_aux_compass
+     /tmp/ccNplRIg.s:45     .text.inv_icm207xx_is_compass_registered:0000000000000000 $t
+     /tmp/ccNplRIg.s:52     .text.inv_icm207xx_is_compass_registered:0000000000000000 inv_icm207xx_is_compass_registered
+
+NO UNDEFINED SYMBOLS

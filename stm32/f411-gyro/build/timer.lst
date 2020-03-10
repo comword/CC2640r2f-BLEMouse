@@ -1,0 +1,410 @@
+ARM GAS  /tmp/ccZ2oLcV.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"timer.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.HAL_TIM_IC_CaptureCallback,"ax",%progbits
+  18              		.align	1
+  19              		.global	HAL_TIM_IC_CaptureCallback
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  23              		.fpu fpv4-sp-d16
+  25              	HAL_TIM_IC_CaptureCallback:
+  26              	.LFB126:
+  27              		.file 1 "Src/timer.c"
+   1:Src/timer.c   **** /*
+   2:Src/timer.c   ****  * timer.c
+   3:Src/timer.c   ****  *
+   4:Src/timer.c   ****  *  Created on: Oct 2, 2018
+   5:Src/timer.c   ****  *      Author: henorvell
+   6:Src/timer.c   ****  */
+   7:Src/timer.c   **** 
+   8:Src/timer.c   **** #include "timer.h"
+   9:Src/timer.c   **** #include "RingBuffer.h"
+  10:Src/timer.c   **** 
+  11:Src/timer.c   **** static RINGBUFFER(int_timestamp_buffer, 256, uint32_t);
+  12:Src/timer.c   **** static void (*sInterrupt_cb)(int int_num);
+  13:Src/timer.c   **** 
+  14:Src/timer.c   **** void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+  15:Src/timer.c   **** {
+  28              		.loc 1 15 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              	.LVL0:
+  33 0000 08B5     		push	{r3, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 3, -8
+  37              		.cfi_offset 14, -4
+  16:Src/timer.c   **** 	if(htim->Instance == TIM3) {
+  38              		.loc 1 16 0
+  39 0002 0368     		ldr	r3, [r0]
+  40 0004 0D4A     		ldr	r2, .L6
+  41 0006 9342     		cmp	r3, r2
+  42 0008 00D0     		beq	.L5
+ARM GAS  /tmp/ccZ2oLcV.s 			page 2
+
+
+  43              	.LVL1:
+  44              	.L1:
+  17:Src/timer.c   **** 		uint32_t read_value = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_3);
+  18:Src/timer.c   **** 		if(!RINGBUFFER_FULL(&int_timestamp_buffer))
+  19:Src/timer.c   **** 			RINGBUFFER_PUSH(&int_timestamp_buffer, &read_value);
+  20:Src/timer.c   **** 		if(sInterrupt_cb)
+  21:Src/timer.c   **** 			sInterrupt_cb(1); //1 for first sensor flag
+  22:Src/timer.c   **** 	}
+  23:Src/timer.c   **** }
+  45              		.loc 1 23 0
+  46 000a 08BD     		pop	{r3, pc}
+  47              	.LVL2:
+  48              	.L5:
+  49              	.LBB2:
+  17:Src/timer.c   **** 		uint32_t read_value = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_3);
+  50              		.loc 1 17 0
+  51 000c D86B     		ldr	r0, [r3, #60]
+  52              	.LVL3:
+  18:Src/timer.c   **** 			RINGBUFFER_PUSH(&int_timestamp_buffer, &read_value);
+  53              		.loc 1 18 0
+  54 000e 0C4B     		ldr	r3, .L6+4
+  55 0010 5A88     		ldrh	r2, [r3, #2]
+  56 0012 1B88     		ldrh	r3, [r3]
+  57 0014 D31A     		subs	r3, r2, r3
+  58 0016 9BB2     		uxth	r3, r3
+  59 0018 B3F5807F 		cmp	r3, #256
+  60 001c 06D0     		beq	.L3
+  19:Src/timer.c   **** 		if(sInterrupt_cb)
+  61              		.loc 1 19 0
+  62 001e D3B2     		uxtb	r3, r2
+  63 0020 0749     		ldr	r1, .L6+4
+  64 0022 01EB8303 		add	r3, r1, r3, lsl #2
+  65 0026 5860     		str	r0, [r3, #4]
+  66 0028 0132     		adds	r2, r2, #1
+  67 002a 4A80     		strh	r2, [r1, #2]	@ movhi
+  68              	.L3:
+  20:Src/timer.c   **** 			sInterrupt_cb(1); //1 for first sensor flag
+  69              		.loc 1 20 0
+  70 002c 054B     		ldr	r3, .L6+8
+  71 002e 1B68     		ldr	r3, [r3]
+  72 0030 002B     		cmp	r3, #0
+  73 0032 EAD0     		beq	.L1
+  21:Src/timer.c   **** 	}
+  74              		.loc 1 21 0
+  75 0034 0120     		movs	r0, #1
+  76              	.LVL4:
+  77 0036 9847     		blx	r3
+  78              	.LVL5:
+  79              	.LBE2:
+  80              		.loc 1 23 0
+  81 0038 E7E7     		b	.L1
+  82              	.L7:
+  83 003a 00BF     		.align	2
+  84              	.L6:
+  85 003c 00040040 		.word	1073742848
+  86 0040 00000000 		.word	.LANCHOR0
+  87 0044 00000000 		.word	.LANCHOR1
+ARM GAS  /tmp/ccZ2oLcV.s 			page 3
+
+
+  88              		.cfi_endproc
+  89              	.LFE126:
+  91              		.section	.text.timer_get_irq_timestamp,"ax",%progbits
+  92              		.align	1
+  93              		.global	timer_get_irq_timestamp
+  94              		.syntax unified
+  95              		.thumb
+  96              		.thumb_func
+  97              		.fpu fpv4-sp-d16
+  99              	timer_get_irq_timestamp:
+ 100              	.LFB127:
+  24:Src/timer.c   **** 
+  25:Src/timer.c   **** uint64_t timer_get_irq_timestamp()
+  26:Src/timer.c   **** {
+ 101              		.loc 1 26 0
+ 102              		.cfi_startproc
+ 103              		@ args = 0, pretend = 0, frame = 0
+ 104              		@ frame_needed = 0, uses_anonymous_args = 0
+ 105 0000 10B5     		push	{r4, lr}
+ 106              	.LCFI1:
+ 107              		.cfi_def_cfa_offset 8
+ 108              		.cfi_offset 4, -8
+ 109              		.cfi_offset 14, -4
+ 110              	.LVL6:
+  27:Src/timer.c   **** 	uint32_t timestamp = 0;
+  28:Src/timer.c   **** 	//disable_irq();
+  29:Src/timer.c   **** 	HAL_NVIC_DisableIRQ(TIM3_IRQn);
+ 111              		.loc 1 29 0
+ 112 0002 1D20     		movs	r0, #29
+ 113 0004 FFF7FEFF 		bl	HAL_NVIC_DisableIRQ
+ 114              	.LVL7:
+  30:Src/timer.c   **** 	if(!RINGBUFFER_EMPTY(&int_timestamp_buffer))
+ 115              		.loc 1 30 0
+ 116 0008 094B     		ldr	r3, .L12
+ 117 000a 5A88     		ldrh	r2, [r3, #2]
+ 118 000c 1B88     		ldrh	r3, [r3]
+ 119 000e 9A42     		cmp	r2, r3
+ 120 0010 0CD0     		beq	.L10
+  31:Src/timer.c   **** 		RINGBUFFER_POP(&int_timestamp_buffer, &timestamp);
+ 121              		.loc 1 31 0
+ 122 0012 DAB2     		uxtb	r2, r3
+ 123 0014 0649     		ldr	r1, .L12
+ 124 0016 01EB8202 		add	r2, r1, r2, lsl #2
+ 125 001a 5468     		ldr	r4, [r2, #4]
+ 126              	.LVL8:
+ 127 001c 0133     		adds	r3, r3, #1
+ 128 001e 0B80     		strh	r3, [r1]	@ movhi
+ 129              	.LVL9:
+ 130              	.L9:
+  32:Src/timer.c   **** 	HAL_NVIC_EnableIRQ(TIM3_IRQn);
+ 131              		.loc 1 32 0
+ 132 0020 1D20     		movs	r0, #29
+ 133 0022 FFF7FEFF 		bl	HAL_NVIC_EnableIRQ
+ 134              	.LVL10:
+  33:Src/timer.c   **** 	//enable_irq();
+  34:Src/timer.c   **** 	return (uint64_t)timestamp;
+  35:Src/timer.c   **** }
+ARM GAS  /tmp/ccZ2oLcV.s 			page 4
+
+
+ 135              		.loc 1 35 0
+ 136 0026 2046     		mov	r0, r4
+ 137 0028 0021     		movs	r1, #0
+ 138 002a 10BD     		pop	{r4, pc}
+ 139              	.LVL11:
+ 140              	.L10:
+  27:Src/timer.c   **** 	//disable_irq();
+ 141              		.loc 1 27 0
+ 142 002c 0024     		movs	r4, #0
+ 143 002e F7E7     		b	.L9
+ 144              	.L13:
+ 145              		.align	2
+ 146              	.L12:
+ 147 0030 00000000 		.word	.LANCHOR0
+ 148              		.cfi_endproc
+ 149              	.LFE127:
+ 151              		.section	.text.timer_clear_irq_timestamp,"ax",%progbits
+ 152              		.align	1
+ 153              		.global	timer_clear_irq_timestamp
+ 154              		.syntax unified
+ 155              		.thumb
+ 156              		.thumb_func
+ 157              		.fpu fpv4-sp-d16
+ 159              	timer_clear_irq_timestamp:
+ 160              	.LFB128:
+  36:Src/timer.c   **** 
+  37:Src/timer.c   **** int timer_clear_irq_timestamp()
+  38:Src/timer.c   **** {
+ 161              		.loc 1 38 0
+ 162              		.cfi_startproc
+ 163              		@ args = 0, pretend = 0, frame = 0
+ 164              		@ frame_needed = 0, uses_anonymous_args = 0
+ 165 0000 10B5     		push	{r4, lr}
+ 166              	.LCFI2:
+ 167              		.cfi_def_cfa_offset 8
+ 168              		.cfi_offset 4, -8
+ 169              		.cfi_offset 14, -4
+  39:Src/timer.c   **** 	//disable_irq();
+  40:Src/timer.c   **** 	HAL_NVIC_DisableIRQ(TIM3_IRQn);
+ 170              		.loc 1 40 0
+ 171 0002 1D20     		movs	r0, #29
+ 172 0004 FFF7FEFF 		bl	HAL_NVIC_DisableIRQ
+ 173              	.LVL12:
+  41:Src/timer.c   **** 	RINGBUFFER_CLEAR(&int_timestamp_buffer);
+ 174              		.loc 1 41 0
+ 175 0008 044B     		ldr	r3, .L16
+ 176 000a 0024     		movs	r4, #0
+ 177 000c 1C80     		strh	r4, [r3]	@ movhi
+ 178 000e 5C80     		strh	r4, [r3, #2]	@ movhi
+  42:Src/timer.c   **** 	HAL_NVIC_EnableIRQ(TIM3_IRQn);
+ 179              		.loc 1 42 0
+ 180 0010 1D20     		movs	r0, #29
+ 181 0012 FFF7FEFF 		bl	HAL_NVIC_EnableIRQ
+ 182              	.LVL13:
+  43:Src/timer.c   **** 	//enable_irq();
+  44:Src/timer.c   **** 	return 0;
+  45:Src/timer.c   **** }
+ARM GAS  /tmp/ccZ2oLcV.s 			page 5
+
+
+ 183              		.loc 1 45 0
+ 184 0016 2046     		mov	r0, r4
+ 185 0018 10BD     		pop	{r4, pc}
+ 186              	.L17:
+ 187 001a 00BF     		.align	2
+ 188              	.L16:
+ 189 001c 00000000 		.word	.LANCHOR0
+ 190              		.cfi_endproc
+ 191              	.LFE128:
+ 193              		.section	.text.timer_configure_timebase,"ax",%progbits
+ 194              		.align	1
+ 195              		.global	timer_configure_timebase
+ 196              		.syntax unified
+ 197              		.thumb
+ 198              		.thumb_func
+ 199              		.fpu fpv4-sp-d16
+ 201              	timer_configure_timebase:
+ 202              	.LFB129:
+  46:Src/timer.c   **** 
+  47:Src/timer.c   **** int timer_configure_timebase(TIM_HandleTypeDef* timer_num, uint32_t frequency)
+  48:Src/timer.c   **** {
+ 203              		.loc 1 48 0
+ 204              		.cfi_startproc
+ 205              		@ args = 0, pretend = 0, frame = 0
+ 206              		@ frame_needed = 0, uses_anonymous_args = 0
+ 207              		@ link register save eliminated.
+ 208              	.LVL14:
+  49:Src/timer.c   **** 	uint32_t prescaler;
+  50:Src/timer.c   **** 	/* Compute the prescaler value for the requested frequency */
+  51:Src/timer.c   **** 	prescaler = (SystemCoreClock / frequency) - 1;
+ 209              		.loc 1 51 0
+ 210 0000 094B     		ldr	r3, .L21
+ 211 0002 1B68     		ldr	r3, [r3]
+ 212 0004 B3FBF1F1 		udiv	r1, r3, r1
+ 213              	.LVL15:
+ 214 0008 0139     		subs	r1, r1, #1
+ 215              	.LVL16:
+  52:Src/timer.c   **** 	if(prescaler > UINT16_MAX)
+ 216              		.loc 1 52 0
+ 217 000a B1F5803F 		cmp	r1, #65536
+ 218 000e 08D2     		bcs	.L20
+  53:Src/timer.c   **** 		return -1;
+  54:Src/timer.c   **** 	__HAL_TIM_SET_PRESCALER(timer_num, prescaler);
+ 219              		.loc 1 54 0
+ 220 0010 0368     		ldr	r3, [r0]
+ 221 0012 9962     		str	r1, [r3, #40]
+  55:Src/timer.c   **** 	__HAL_TIM_SET_AUTORELOAD(timer_num, UINT32_MAX);
+ 222              		.loc 1 55 0
+ 223 0014 0268     		ldr	r2, [r0]
+ 224 0016 4FF0FF33 		mov	r3, #-1
+ 225 001a D362     		str	r3, [r2, #44]
+ 226 001c C360     		str	r3, [r0, #12]
+  56:Src/timer.c   **** 	return 0;
+ 227              		.loc 1 56 0
+ 228 001e 0020     		movs	r0, #0
+ 229              	.LVL17:
+ 230 0020 7047     		bx	lr
+ARM GAS  /tmp/ccZ2oLcV.s 			page 6
+
+
+ 231              	.LVL18:
+ 232              	.L20:
+  53:Src/timer.c   **** 		return -1;
+ 233              		.loc 1 53 0
+ 234 0022 4FF0FF30 		mov	r0, #-1
+ 235              	.LVL19:
+  57:Src/timer.c   **** }
+ 236              		.loc 1 57 0
+ 237 0026 7047     		bx	lr
+ 238              	.L22:
+ 239              		.align	2
+ 240              	.L21:
+ 241 0028 00000000 		.word	SystemCoreClock
+ 242              		.cfi_endproc
+ 243              	.LFE129:
+ 245              		.section	.text.timer_configure_callback,"ax",%progbits
+ 246              		.align	1
+ 247              		.global	timer_configure_callback
+ 248              		.syntax unified
+ 249              		.thumb
+ 250              		.thumb_func
+ 251              		.fpu fpv4-sp-d16
+ 253              	timer_configure_callback:
+ 254              	.LFB130:
+  58:Src/timer.c   **** 
+  59:Src/timer.c   **** void timer_configure_callback(void (*interrupt_cb)(int int_num))
+  60:Src/timer.c   **** {
+ 255              		.loc 1 60 0
+ 256              		.cfi_startproc
+ 257              		@ args = 0, pretend = 0, frame = 0
+ 258              		@ frame_needed = 0, uses_anonymous_args = 0
+ 259              		@ link register save eliminated.
+ 260              	.LVL20:
+  61:Src/timer.c   **** 	sInterrupt_cb = interrupt_cb;
+ 261              		.loc 1 61 0
+ 262 0000 014B     		ldr	r3, .L24
+ 263 0002 1860     		str	r0, [r3]
+  62:Src/timer.c   **** }
+ 264              		.loc 1 62 0
+ 265 0004 7047     		bx	lr
+ 266              	.L25:
+ 267 0006 00BF     		.align	2
+ 268              	.L24:
+ 269 0008 00000000 		.word	.LANCHOR1
+ 270              		.cfi_endproc
+ 271              	.LFE130:
+ 273              		.section	.bss.int_timestamp_buffer,"aw",%nobits
+ 274              		.align	2
+ 275              		.set	.LANCHOR0,. + 0
+ 278              	int_timestamp_buffer:
+ 279 0000 00000000 		.space	1028
+ 279      00000000 
+ 279      00000000 
+ 279      00000000 
+ 279      00000000 
+ 280              		.section	.bss.sInterrupt_cb,"aw",%nobits
+ 281              		.align	2
+ARM GAS  /tmp/ccZ2oLcV.s 			page 7
+
+
+ 282              		.set	.LANCHOR1,. + 0
+ 285              	sInterrupt_cb:
+ 286 0000 00000000 		.space	4
+ 287              		.text
+ 288              	.Letext0:
+ 289              		.file 2 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/machine/_de
+ 290              		.file 3 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_stdint
+ 291              		.file 4 "Drivers/CMSIS/Include/core_cm4.h"
+ 292              		.file 5 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/system_stm32f4xx.h"
+ 293              		.file 6 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h"
+ 294              		.file 7 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/lock.h"
+ 295              		.file 8 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_types.
+ 296              		.file 9 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/lib/gcc/arm-none-eabi/7.3.1/inclu
+ 297              		.file 10 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/reent.
+ 298              		.file 11 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 299              		.file 12 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 300              		.file 13 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h"
+ 301              		.file 14 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_cortex.h"
+ARM GAS  /tmp/ccZ2oLcV.s 			page 8
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 timer.c
+     /tmp/ccZ2oLcV.s:18     .text.HAL_TIM_IC_CaptureCallback:0000000000000000 $t
+     /tmp/ccZ2oLcV.s:25     .text.HAL_TIM_IC_CaptureCallback:0000000000000000 HAL_TIM_IC_CaptureCallback
+     /tmp/ccZ2oLcV.s:85     .text.HAL_TIM_IC_CaptureCallback:000000000000003c $d
+     /tmp/ccZ2oLcV.s:92     .text.timer_get_irq_timestamp:0000000000000000 $t
+     /tmp/ccZ2oLcV.s:99     .text.timer_get_irq_timestamp:0000000000000000 timer_get_irq_timestamp
+     /tmp/ccZ2oLcV.s:147    .text.timer_get_irq_timestamp:0000000000000030 $d
+     /tmp/ccZ2oLcV.s:152    .text.timer_clear_irq_timestamp:0000000000000000 $t
+     /tmp/ccZ2oLcV.s:159    .text.timer_clear_irq_timestamp:0000000000000000 timer_clear_irq_timestamp
+     /tmp/ccZ2oLcV.s:189    .text.timer_clear_irq_timestamp:000000000000001c $d
+     /tmp/ccZ2oLcV.s:194    .text.timer_configure_timebase:0000000000000000 $t
+     /tmp/ccZ2oLcV.s:201    .text.timer_configure_timebase:0000000000000000 timer_configure_timebase
+     /tmp/ccZ2oLcV.s:241    .text.timer_configure_timebase:0000000000000028 $d
+     /tmp/ccZ2oLcV.s:246    .text.timer_configure_callback:0000000000000000 $t
+     /tmp/ccZ2oLcV.s:253    .text.timer_configure_callback:0000000000000000 timer_configure_callback
+     /tmp/ccZ2oLcV.s:269    .text.timer_configure_callback:0000000000000008 $d
+     /tmp/ccZ2oLcV.s:274    .bss.int_timestamp_buffer:0000000000000000 $d
+     /tmp/ccZ2oLcV.s:278    .bss.int_timestamp_buffer:0000000000000000 int_timestamp_buffer
+     /tmp/ccZ2oLcV.s:281    .bss.sInterrupt_cb:0000000000000000 $d
+     /tmp/ccZ2oLcV.s:285    .bss.sInterrupt_cb:0000000000000000 sInterrupt_cb
+
+UNDEFINED SYMBOLS
+HAL_NVIC_DisableIRQ
+HAL_NVIC_EnableIRQ
+SystemCoreClock

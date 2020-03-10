@@ -1,0 +1,3229 @@
+ARM GAS  /tmp/ccDhQfGk.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"gyro.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.check_rc,"ax",%progbits
+  18              		.align	1
+  19              		.syntax unified
+  20              		.thumb
+  21              		.thumb_func
+  22              		.fpu fpv4-sp-d16
+  24              	check_rc:
+  25              	.LFB156:
+  26              		.file 1 "Src/gyro.c"
+   1:Src/gyro.c    **** #include "gyro.h"
+   2:Src/gyro.c    **** #include "stm32f4xx_hal.h"
+   3:Src/gyro.c    **** #include "Message.h"
+   4:Src/gyro.c    **** #include "ErrorHelper.h"
+   5:Src/gyro.c    **** #include "timer.h"
+   6:Src/gyro.c    **** #include "LibAlgo.h"
+   7:Src/gyro.c    **** 
+   8:Src/gyro.c    **** extern SPI_HandleTypeDef hspi2;
+   9:Src/gyro.c    **** //extern UART_HandleTypeDef huart6;
+  10:Src/gyro.c    **** 
+  11:Src/gyro.c    **** static int32_t cfg_acc_fsr = 4000; /* +/- 4g */
+  12:Src/gyro.c    **** static int32_t cfg_gyr_fsr = 2000; /* +/- 2000dps */
+  13:Src/gyro.c    **** 
+  14:Src/gyro.c    **** /* Sensitivity configurations */
+  15:Src/gyro.c    **** #define ACC_SENSITIVITY (int32_t) ( ((cfg_acc_fsr/1000) * (1 << 16)) / INT16_MAX)
+  16:Src/gyro.c    **** #define GYR_SENSITIVITY (int32_t) ( (cfg_gyr_fsr * (1 << 16) / INT16_MAX) )
+  17:Src/gyro.c    **** 
+  18:Src/gyro.c    **** #define DATA_ACCURACY_MASK  ((uint32_t)0x7)
+  19:Src/gyro.c    **** 
+  20:Src/gyro.c    **** static const uint8_t EXPECTED_WHOAMI[] = { 0x95, 0x98, 0x02, 0x03 };
+  21:Src/gyro.c    **** /* WHOAMI value for ICM207XX or derivative */ //ICM20689 is 0x98,ICM20789 is 0x95 JPL
+  22:Src/gyro.c    **** 
+  23:Src/gyro.c    **** static inv_icm207xx_t icm_device;
+  24:Src/gyro.c    **** 
+  25:Src/gyro.c    **** /*
+  26:Src/gyro.c    ****  * Flag set from icm207xx device irq handler
+  27:Src/gyro.c    ****  */
+  28:Src/gyro.c    **** static volatile int irq_from_device;
+  29:Src/gyro.c    **** 
+  30:Src/gyro.c    **** /*
+  31:Src/gyro.c    ****  * Variable to keep track of the expected period common for all sensors
+  32:Src/gyro.c    ****  */
+ARM GAS  /tmp/ccDhQfGk.s 			page 2
+
+
+  33:Src/gyro.c    **** static uint32_t period_us = DEFAULT_ODR_US /* 50Hz by default */;
+  34:Src/gyro.c    **** 
+  35:Src/gyro.c    **** /*
+  36:Src/gyro.c    ****  * Variable to drop the first timestamp(s) after a sensor start catched by the interrupt line.
+  37:Src/gyro.c    ****  * This is needed to be inline with the driver. The first data polled from the FIFO is always disca
+  38:Src/gyro.c    ****  */
+  39:Src/gyro.c    **** static uint8_t timestamp_to_drop = 0;
+  40:Src/gyro.c    **** 
+  41:Src/gyro.c    **** /*
+  42:Src/gyro.c    ****  * Variable keeping track of chip information
+  43:Src/gyro.c    ****  */
+  44:Src/gyro.c    **** static uint8_t chip_info[3];
+  45:Src/gyro.c    **** 
+  46:Src/gyro.c    **** /*
+  47:Src/gyro.c    ****  * Data Structures
+  48:Src/gyro.c    ****  */
+  49:Src/gyro.c    **** static int32_t sRacc_data[3];
+  50:Src/gyro.c    **** static int32_t sRgyro_data[3];
+  51:Src/gyro.c    **** static int16_t sRtemp_data;
+  52:Src/gyro.c    **** 
+  53:Src/gyro.c    **** static struct {
+  54:Src/gyro.c    **** 	int32_t acc_cal_q16[3];
+  55:Src/gyro.c    **** 	int32_t acc_bias_q16[3];
+  56:Src/gyro.c    **** 	uint8_t accuracy_flag;
+  57:Src/gyro.c    **** 	union {
+  58:Src/gyro.c    **** 		uint8_t buf[ALGO_INVN_CALIBRATION_ACGO_CONFIG_SIZE];
+  59:Src/gyro.c    **** 		float   flt; /* ensure correct memory alignment of the buffer */
+  60:Src/gyro.c    **** 	} C_buffer;
+  61:Src/gyro.c    **** } sCalAcc;
+  62:Src/gyro.c    **** 
+  63:Src/gyro.c    **** static struct {
+  64:Src/gyro.c    **** 	int32_t gyro_cal_2000dps_q30[3];
+  65:Src/gyro.c    **** 	int32_t gyr_cal_q16[3];
+  66:Src/gyro.c    **** 	int32_t gyr_uncal_q16[3];
+  67:Src/gyro.c    **** 	int32_t gyr_bias_q16[3];
+  68:Src/gyro.c    **** 	uint8_t accuracy_flag;
+  69:Src/gyro.c    **** 	union {
+  70:Src/gyro.c    **** 		uint8_t buf[ALGO_INVN_CALIBRATION_GYR_CAL_FXP_SIZE];
+  71:Src/gyro.c    **** 		float   flt; /* ensure correct memory alignment of the buffer */
+  72:Src/gyro.c    **** 	} C_buffer;
+  73:Src/gyro.c    **** } sCalGyr;
+  74:Src/gyro.c    **** 
+  75:Src/gyro.c    **** static struct {
+  76:Src/gyro.c    **** 	int32_t grv_quat_q30[4];
+  77:Src/gyro.c    **** 	int32_t gravity_q16[3];
+  78:Src/gyro.c    **** 	int32_t linearacc_q16[3];
+  79:Src/gyro.c    **** 	union {
+  80:Src/gyro.c    **** 		uint8_t buf[ALGO_INVN_ORIENTATION_CONFIG_SIZE];
+  81:Src/gyro.c    **** 		float flt; /* ensure proper alignement */
+  82:Src/gyro.c    **** 	} C_buffer;
+  83:Src/gyro.c    **** } sGRV;
+  84:Src/gyro.c    **** 
+  85:Src/gyro.c    **** /*
+  86:Src/gyro.c    ****  * Mounting matrix configuration applied for both Accel and Gyro
+  87:Src/gyro.c    ****  * The coefficient values are coded in integer q30
+  88:Src/gyro.c    ****  */
+  89:Src/gyro.c    **** static int32_t cfg_mounting_matrix[9]= { 1.f*(1<<30), 0,           0,
+ARM GAS  /tmp/ccDhQfGk.s 			page 3
+
+
+  90:Src/gyro.c    ****                                          0,           1.f*(1<<30), 0,
+  91:Src/gyro.c    ****                                          0,           0,           1.f*(1<<30) };
+  92:Src/gyro.c    **** 
+  93:Src/gyro.c    **** /* Forward declaration */
+  94:Src/gyro.c    **** static int idd_io_hal_read_reg(void * context, uint8_t reg, uint8_t * rbuffer, uint32_t rlen);
+  95:Src/gyro.c    **** static int idd_io_hal_write_reg(void * context, uint8_t reg, const uint8_t * wbuffer, uint32_t wlen
+  96:Src/gyro.c    **** static void check_rc(int rc, const char * msg_context);
+  97:Src/gyro.c    **** static void apply_mouting_matrix(const int32_t mounting_matrix[9], const int16_t raw[3], int32_t ou
+  98:Src/gyro.c    **** static void notify_event(uint64_t timestamp);
+  99:Src/gyro.c    **** static void sensor_event(const xSensorEvent * event, void * arg);
+ 100:Src/gyro.c    **** static void algorithms_init(void);
+ 101:Src/gyro.c    **** static void algorithms_process(void);
+ 102:Src/gyro.c    **** 
+ 103:Src/gyro.c    **** /** @brief Read a register through the control interface SPI
+ 104:Src/gyro.c    **** * @param[in] spinum, required spi line number
+ 105:Src/gyro.c    **** * @param[in] register_addr, register address (location) to access
+ 106:Src/gyro.c    **** * @param[in] register_len, length value to read
+ 107:Src/gyro.c    **** * @param[in] register_value, pointer on byte value to read
+ 108:Src/gyro.c    **** * @retval 0 if correct communication, else wrong communication
+ 109:Src/gyro.c    **** */
+ 110:Src/gyro.c    **** static unsigned long spi_master_read_register(SPI_HandleTypeDef * hspi, unsigned char register_addr
+ 111:Src/gyro.c    ****                                           unsigned short register_len, unsigned char *register_valu
+ 112:Src/gyro.c    **** 
+ 113:Src/gyro.c    **** /** @brief Write a register through the control interface SPI
+ 114:Src/gyro.c    **** * @param[in] spinum, required spi line number
+ 115:Src/gyro.c    **** * @param[in] register_addr, register address (location) to access
+ 116:Src/gyro.c    **** * @param[in] register_len, length value to write
+ 117:Src/gyro.c    **** * @param[in] register_value, pointer on byte value to write
+ 118:Src/gyro.c    **** * @retval 0 if correct communication, else wrong communication
+ 119:Src/gyro.c    **** */
+ 120:Src/gyro.c    **** static unsigned long spi_master_write_register(SPI_HandleTypeDef * hspi, unsigned char register_add
+ 121:Src/gyro.c    ****                                            unsigned short register_len, const unsigned char *regist
+ 122:Src/gyro.c    **** 
+ 123:Src/gyro.c    **** void gyroinit(SPI_HandleTypeDef *spi)
+ 124:Src/gyro.c    **** {
+ 125:Src/gyro.c    **** 	struct inv_icm207xx_serif icm207xx_serif;
+ 126:Src/gyro.c    **** 	icm207xx_serif.context   = spi; // SPI handle
+ 127:Src/gyro.c    **** 	icm207xx_serif.read_reg  = idd_io_hal_read_reg;
+ 128:Src/gyro.c    **** 	icm207xx_serif.write_reg = idd_io_hal_write_reg;
+ 129:Src/gyro.c    **** 	icm207xx_serif.max_read  = 1024*32; /* maximum number of bytes allowed per serial read */
+ 130:Src/gyro.c    **** 	icm207xx_serif.max_write = 1024*32; /* maximum number of bytes allowed per serial write */
+ 131:Src/gyro.c    **** 	icm207xx_serif.is_spi    = 1;
+ 132:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "Openning serial interface through SPI");
+ 133:Src/gyro.c    **** 
+ 134:Src/gyro.c    **** 	/*
+ 135:Src/gyro.c    **** 	 * Reset icm207xx driver states
+ 136:Src/gyro.c    **** 	 */
+ 137:Src/gyro.c    **** 	inv_icm207xx_reset_states(&icm_device, &icm207xx_serif);
+ 138:Src/gyro.c    **** 
+ 139:Src/gyro.c    **** 	/*
+ 140:Src/gyro.c    **** 	 * Setup the icm207xx device
+ 141:Src/gyro.c    **** 	 */
+ 142:Src/gyro.c    **** 	icm207xx_sensor_setup();
+ 143:Src/gyro.c    ****     icm207xx_sensor_configuration();
+ 144:Src/gyro.c    ****     /*
+ 145:Src/gyro.c    **** 	 * Initializes the calibration and orientation algorithms
+ 146:Src/gyro.c    **** 	 */
+ARM GAS  /tmp/ccDhQfGk.s 			page 4
+
+
+ 147:Src/gyro.c    **** 	algorithms_init();
+ 148:Src/gyro.c    **** 
+ 149:Src/gyro.c    **** 	/*
+ 150:Src/gyro.c    **** 	 * Initializes the default sensor ODR in order to properly init the algorithms
+ 151:Src/gyro.c    **** 	 */
+ 152:Src/gyro.c    **** 	sensor_configure_odr(period_us);
+ 153:Src/gyro.c    **** 	timer_configure_callback(ext_interrupt_cb);
+ 154:Src/gyro.c    **** //	icm207xx_run_selftest();
+ 155:Src/gyro.c    **** //	icm207xx_sensor_setup();
+ 156:Src/gyro.c    **** //	icm207xx_sensor_configuration();
+ 157:Src/gyro.c    **** 
+ 158:Src/gyro.c    **** }
+ 159:Src/gyro.c    **** 
+ 160:Src/gyro.c    **** void doupdategyro()
+ 161:Src/gyro.c    **** {
+ 162:Src/gyro.c    **** 	if(irq_from_device & 1) {
+ 163:Src/gyro.c    **** 		int rc = 0;
+ 164:Src/gyro.c    **** 		uint8_t ddry = 0;
+ 165:Src/gyro.c    **** 		uint8_t int_status;
+ 166:Src/gyro.c    **** 		int16_t raw_acc[3], raw_gyro[3];
+ 167:Src/gyro.c    **** 
+ 168:Src/gyro.c    **** 		/*
+ 169:Src/gyro.c    **** 		 *  Ensure data ready status
+ 170:Src/gyro.c    **** 		*/
+ 171:Src/gyro.c    **** 		if((rc = inv_icm207xx_get_int_status(&icm_device, &int_status)) == 0)
+ 172:Src/gyro.c    **** 			ddry = inv_icm207xx_check_drdy(&icm_device, int_status);
+ 173:Src/gyro.c    **** 
+ 174:Src/gyro.c    **** 		if(ddry) {
+ 175:Src/gyro.c    **** 			struct inv_icm207xx_fifo_states fifo_states;
+ 176:Src/gyro.c    **** 
+ 177:Src/gyro.c    **** 			rc = inv_icm207xx_poll_fifo_data_setup(&icm_device, &fifo_states, int_status);
+ 178:Src/gyro.c    **** 			check_rc(rc, "Error while polling the icm207xx device");
+ 179:Src/gyro.c    **** 			if(rc == 1) {
+ 180:Src/gyro.c    **** 				/*
+ 181:Src/gyro.c    **** 				 * Overflow detected
+ 182:Src/gyro.c    **** 				 */
+ 183:Src/gyro.c    **** 				INV_MSG(INV_MSG_LEVEL_WARNING, "FIFO overflow detected!");
+ 184:Src/gyro.c    **** 				inv_icm207xx_reset_fifo(&icm_device);
+ 185:Src/gyro.c    **** 				timer_clear_irq_timestamp();
+ 186:Src/gyro.c    **** 			}
+ 187:Src/gyro.c    **** 			else if(fifo_states.packet_count > 0 && fifo_states.packet_size > 0) {
+ 188:Src/gyro.c    **** 				/*
+ 189:Src/gyro.c    **** 				 * Read FIFO only when data is expected in FIFO
+ 190:Src/gyro.c    **** 				 */
+ 191:Src/gyro.c    **** 				while((rc = inv_icm207xx_poll_fifo_data(&icm_device, &fifo_states, raw_acc, &sRtemp_data, raw_g
+ 192:Src/gyro.c    **** 
+ 193:Src/gyro.c    **** 					uint64_t timestamp = timer_get_irq_timestamp();
+ 194:Src/gyro.c    **** 
+ 195:Src/gyro.c    **** 					/*
+ 196:Src/gyro.c    **** 					 * Drop the first timestamp(s) caught by the interrupt
+ 197:Src/gyro.c    **** 					 * because the first data in FIFO is always dropped by
+ 198:Src/gyro.c    **** 					 * the icm207xx driver. 6-axis fusion needs two
+ 199:Src/gyro.c    **** 					 * samples to be dropped.
+ 200:Src/gyro.c    **** 					 */
+ 201:Src/gyro.c    **** 					while (timestamp_to_drop > 0) {
+ 202:Src/gyro.c    **** 						timestamp = timer_get_irq_timestamp();
+ 203:Src/gyro.c    **** 						timestamp_to_drop--;
+ARM GAS  /tmp/ccDhQfGk.s 			page 5
+
+
+ 204:Src/gyro.c    **** 					}
+ 205:Src/gyro.c    **** 
+ 206:Src/gyro.c    **** 					/*
+ 207:Src/gyro.c    **** 					* Apply the mounting matrix configuration to the data polled
+ 208:Src/gyro.c    **** 					*/
+ 209:Src/gyro.c    **** 					apply_mouting_matrix(cfg_mounting_matrix, raw_acc, sRacc_data);
+ 210:Src/gyro.c    **** 					apply_mouting_matrix(cfg_mounting_matrix, raw_gyro, sRgyro_data);
+ 211:Src/gyro.c    **** 
+ 212:Src/gyro.c    **** 					/*
+ 213:Src/gyro.c    **** 					 * Compute calibration and orientation algorithms
+ 214:Src/gyro.c    **** 					 */
+ 215:Src/gyro.c    **** 					algorithms_process();
+ 216:Src/gyro.c    **** 
+ 217:Src/gyro.c    **** 					/*
+ 218:Src/gyro.c    **** 					 * Notify upon new sensor data event
+ 219:Src/gyro.c    **** 					 */
+ 220:Src/gyro.c    **** 					notify_event(timestamp);
+ 221:Src/gyro.c    **** 				}
+ 222:Src/gyro.c    **** 			}
+ 223:Src/gyro.c    **** 		}
+ 224:Src/gyro.c    **** 		irq_from_device &= ~1;
+ 225:Src/gyro.c    **** 	}
+ 226:Src/gyro.c    **** }
+ 227:Src/gyro.c    **** 
+ 228:Src/gyro.c    **** int idd_io_hal_read_reg(void * context, uint8_t reg, uint8_t * rbuffer, uint32_t rlen)
+ 229:Src/gyro.c    **** {
+ 230:Src/gyro.c    **** 	SPI_HandleTypeDef *spi = context;
+ 231:Src/gyro.c    **** 	return spi_master_read_register(spi, reg, rlen, rbuffer);
+ 232:Src/gyro.c    **** }
+ 233:Src/gyro.c    **** 
+ 234:Src/gyro.c    **** int idd_io_hal_write_reg(void * context, uint8_t reg, const uint8_t * wbuffer, uint32_t wlen)
+ 235:Src/gyro.c    **** {
+ 236:Src/gyro.c    **** 	SPI_HandleTypeDef *spi = context;
+ 237:Src/gyro.c    **** 	return spi_master_write_register(spi, reg, wlen, wbuffer);
+ 238:Src/gyro.c    **** }
+ 239:Src/gyro.c    **** 
+ 240:Src/gyro.c    **** unsigned long spi_master_read_register(SPI_HandleTypeDef *hspi, unsigned char register_addr,
+ 241:Src/gyro.c    ****                                           unsigned short register_len, unsigned char *register_valu
+ 242:Src/gyro.c    **** {
+ 243:Src/gyro.c    **** 	register_addr = READ_BIT_MASK | register_addr;
+ 244:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+ 245:Src/gyro.c    **** 	HAL_SPI_Transmit(hspi, &register_addr, sizeof(register_addr), SPIx_FLAG_TIMEOUT);
+ 246:Src/gyro.c    **** 	HAL_SPI_Receive(hspi, register_value, register_len, SPIx_FLAG_TIMEOUT);
+ 247:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+ 248:Src/gyro.c    **** 	return 0;
+ 249:Src/gyro.c    **** }
+ 250:Src/gyro.c    **** 
+ 251:Src/gyro.c    **** unsigned long spi_master_write_register(SPI_HandleTypeDef *hspi, unsigned char register_addr,
+ 252:Src/gyro.c    ****                                            unsigned short register_len, const unsigned char *regist
+ 253:Src/gyro.c    **** {
+ 254:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+ 255:Src/gyro.c    **** 	HAL_SPI_Transmit(hspi, &register_addr, sizeof(register_addr), SPIx_FLAG_TIMEOUT);
+ 256:Src/gyro.c    **** 	HAL_SPI_Transmit(hspi, register_value, register_len, SPIx_FLAG_TIMEOUT);
+ 257:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+ 258:Src/gyro.c    **** 	return 0;
+ 259:Src/gyro.c    **** }
+ 260:Src/gyro.c    **** 
+ARM GAS  /tmp/ccDhQfGk.s 			page 6
+
+
+ 261:Src/gyro.c    **** int icm207xx_sensor_setup(void)
+ 262:Src/gyro.c    **** {
+ 263:Src/gyro.c    **** 	int rc;
+ 264:Src/gyro.c    **** 	uint8_t i, whoami = 0xff;
+ 265:Src/gyro.c    **** 	/*
+ 266:Src/gyro.c    **** 	 * Just get the whoami
+ 267:Src/gyro.c    **** 	 */
+ 268:Src/gyro.c    **** 	rc = inv_icm207xx_get_whoami(&icm_device, &whoami);
+ 269:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "ICM20689 WHOAMI=0x%02x", whoami);
+ 270:Src/gyro.c    **** 	check_rc(rc, "Error reading WHOAMI");
+ 271:Src/gyro.c    **** 	/*
+ 272:Src/gyro.c    **** 	 * Check if WHOAMI value corresponds to any value from EXPECTED_WHOAMI array
+ 273:Src/gyro.c    **** 	 */
+ 274:Src/gyro.c    **** 	for(i = 0; i < sizeof(EXPECTED_WHOAMI)/sizeof(EXPECTED_WHOAMI[0]); ++i) {
+ 275:Src/gyro.c    **** 		if(whoami == EXPECTED_WHOAMI[i])
+ 276:Src/gyro.c    **** 			break;
+ 277:Src/gyro.c    **** 	}
+ 278:Src/gyro.c    **** 
+ 279:Src/gyro.c    **** 	if(i == sizeof(EXPECTED_WHOAMI)/sizeof(EXPECTED_WHOAMI[0])) {
+ 280:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_ERROR, "Bad WHOAMI value. Got 0x%02x. Expected 0x95, 0x02, 0x03.", whoami);
+ 281:Src/gyro.c    **** 		check_rc(-1, "");
+ 282:Src/gyro.c    **** 	}
+ 283:Src/gyro.c    **** 
+ 284:Src/gyro.c    **** 	rc = inv_icm207xx_get_chip_info(&icm_device, chip_info);
+ 285:Src/gyro.c    **** 	check_rc(rc, "Could not obtain chip info");
+ 286:Src/gyro.c    **** 
+ 287:Src/gyro.c    **** 	/*
+ 288:Src/gyro.c    **** 	 * Configure and initialize the ICM207XX for normal use
+ 289:Src/gyro.c    **** 	 */
+ 290:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "Booting up icm207xx...");
+ 291:Src/gyro.c    **** 
+ 292:Src/gyro.c    **** 	/* set default power mode */
+ 293:Src/gyro.c    **** 	if (!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_GYRO) &&
+ 294:Src/gyro.c    **** 		!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_ACCEL)) {
+ 295:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_VERBOSE, "Putting icm207xx in sleep mode...");
+ 296:Src/gyro.c    **** 		rc = inv_icm207xx_initialize(&icm_device);
+ 297:Src/gyro.c    **** 		check_rc(rc, "Error %d while setting-up icm207xx device");
+ 298:Src/gyro.c    **** 	}
+ 299:Src/gyro.c    **** 
+ 300:Src/gyro.c    **** 	/* set default ODR = 50Hz */
+ 301:Src/gyro.c    **** 	rc = inv_icm207xx_set_sensor_period(&icm_device, INV_ICM207XX_SENSOR_ACCEL, DEFAULT_ODR_US/1000 /*
+ 302:Src/gyro.c    **** 	check_rc(rc, "Error %d while setting-up icm207xx device");
+ 303:Src/gyro.c    **** 
+ 304:Src/gyro.c    **** 	rc = inv_icm207xx_set_sensor_period(&icm_device, INV_ICM207XX_SENSOR_GYRO, DEFAULT_ODR_US/1000 /*m
+ 305:Src/gyro.c    **** 	check_rc(rc, "Error %d while setting-up icm207xx device");
+ 306:Src/gyro.c    **** 
+ 307:Src/gyro.c    **** 	period_us = DEFAULT_ODR_US;
+ 308:Src/gyro.c    **** 
+ 309:Src/gyro.c    **** 	/* we should be good to go ! */
+ 310:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_VERBOSE, "We're good to go !");
+ 311:Src/gyro.c    **** 
+ 312:Src/gyro.c    **** 	return 0;
+ 313:Src/gyro.c    **** }
+ 314:Src/gyro.c    **** 
+ 315:Src/gyro.c    **** int icm207xx_sensor_configuration(void)
+ 316:Src/gyro.c    **** {
+ 317:Src/gyro.c    **** 	int rc;
+ARM GAS  /tmp/ccDhQfGk.s 			page 7
+
+
+ 318:Src/gyro.c    **** 
+ 319:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "Configuring accelerometer FSR");
+ 320:Src/gyro.c    **** 	rc = inv_icm207xx_set_accel_fullscale(&icm_device, inv_icm207xx_accel_fsr_2_reg(cfg_acc_fsr));
+ 321:Src/gyro.c    **** 	check_rc(rc, "Error configuring ACC sensor");
+ 322:Src/gyro.c    **** 
+ 323:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "Configuring gyroscope FSR");
+ 324:Src/gyro.c    **** 	rc = inv_icm207xx_set_gyro_fullscale(&icm_device, inv_icm207xx_gyro_fsr_2_reg(cfg_gyr_fsr));
+ 325:Src/gyro.c    **** 	check_rc(rc, "Error configuring GYR sensor");
+ 326:Src/gyro.c    **** 
+ 327:Src/gyro.c    **** 	return rc;
+ 328:Src/gyro.c    **** }
+ 329:Src/gyro.c    **** 
+ 330:Src/gyro.c    **** void check_rc(int rc, const char * msg_context)
+ 331:Src/gyro.c    **** {
+  27              		.loc 1 331 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32              	.LVL0:
+ 332:Src/gyro.c    **** 	if(rc < 0) {
+  33              		.loc 1 332 0
+  34 0000 0028     		cmp	r0, #0
+  35 0002 00DB     		blt	.L3
+ 333:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_ERROR, "%s: error %d (%s)", msg_context, rc, inv_error_str(rc));
+ 334:Src/gyro.c    **** 		while(1);
+ 335:Src/gyro.c    **** 	}
+ 336:Src/gyro.c    **** }
+  36              		.loc 1 336 0
+  37 0004 7047     		bx	lr
+  38              	.L3:
+  39 0006 FEE7     		b	.L3
+  40              		.cfi_endproc
+  41              	.LFE156:
+  43              		.section	.text.apply_mouting_matrix,"ax",%progbits
+  44              		.align	1
+  45              		.syntax unified
+  46              		.thumb
+  47              		.thumb_func
+  48              		.fpu fpv4-sp-d16
+  50              	apply_mouting_matrix:
+  51              	.LFB158:
+ 337:Src/gyro.c    **** 
+ 338:Src/gyro.c    **** int icm207xx_run_selftest(void)
+ 339:Src/gyro.c    **** {
+ 340:Src/gyro.c    **** 	int raw_bias[12];
+ 341:Src/gyro.c    **** 	int rc = 0;
+ 342:Src/gyro.c    **** 
+ 343:Src/gyro.c    **** 	if (icm_device.selftest_done == 1) {
+ 344:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_INFO, "Self-test has already ran. Skipping.");
+ 345:Src/gyro.c    **** 	}
+ 346:Src/gyro.c    **** 	else {
+ 347:Src/gyro.c    **** 		/*
+ 348:Src/gyro.c    **** 		 * Perform self-test
+ 349:Src/gyro.c    **** 		 * For ICM207XX self-test is performed for both RAW_ACC/RAW_GYR
+ 350:Src/gyro.c    **** 		 */
+ 351:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_INFO, "Running self-test...");
+ARM GAS  /tmp/ccDhQfGk.s 			page 8
+
+
+ 352:Src/gyro.c    **** 
+ 353:Src/gyro.c    **** 		/* Run the self-test */
+ 354:Src/gyro.c    **** 		rc = inv_icm207xx_run_selftest(&icm_device);
+ 355:Src/gyro.c    **** 		/* Check transport errors */
+ 356:Src/gyro.c    **** 		check_rc(rc, "Self-test failure");
+ 357:Src/gyro.c    **** 		if (rc != 0x3) {
+ 358:Src/gyro.c    **** 			/*
+ 359:Src/gyro.c    **** 			 * Check for GYR success (1 << 0) and ACC success (1 << 1),
+ 360:Src/gyro.c    **** 			 * but don't block as these are 'usage' failures.
+ 361:Src/gyro.c    **** 			 */
+ 362:Src/gyro.c    **** 			INV_MSG(INV_MSG_LEVEL_ERROR, "Self-test failure");
+ 363:Src/gyro.c    **** 			/* 0 would be considered OK, we want KO */
+ 364:Src/gyro.c    **** 			return INV_ERROR;
+ 365:Src/gyro.c    **** 		} else
+ 366:Src/gyro.c    **** 			/* On success, offset will be kept until reset */
+ 367:Src/gyro.c    **** 			icm_device.selftest_done = 1;
+ 368:Src/gyro.c    **** 
+ 369:Src/gyro.c    **** 		/* It's advised to re-init the icm207xx device after self-test for normal use */
+ 370:Src/gyro.c    **** 		rc = icm207xx_sensor_setup();
+ 371:Src/gyro.c    **** 	}
+ 372:Src/gyro.c    **** 
+ 373:Src/gyro.c    **** 	/*
+ 374:Src/gyro.c    **** 	 * Get Low Noise / Low Power bias computed by self-tests scaled by 2^16
+ 375:Src/gyro.c    **** 	 */
+ 376:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "Getting LP/LN bias");
+ 377:Src/gyro.c    **** 	inv_icm207xx_get_st_bias(&icm_device, raw_bias);
+ 378:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "GYR LN bias (FS=250dps) (dps): x=%f, y=%f, z=%f",
+ 379:Src/gyro.c    **** 			(float)(raw_bias[0] / (float)(1 << 16)), (float)(raw_bias[1] / (float)(1 << 16)), (float)(raw_bi
+ 380:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "GYR LP bias (FS=250dps) (dps): x=%f, y=%f, z=%f",
+ 381:Src/gyro.c    **** 			(float)(raw_bias[3] / (float)(1 << 16)), (float)(raw_bias[4] / (float)(1 << 16)), (float)(raw_bi
+ 382:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "ACC LN bias (FS=2g) (g): x=%f, y=%f, z=%f",
+ 383:Src/gyro.c    **** 			(float)(raw_bias[0 + 6] / (float)(1 << 16)), (float)(raw_bias[1 + 6] / (float)(1 << 16)), (float
+ 384:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "ACC LP bias (FS=2g) (g): x=%f, y=%f, z=%f",
+ 385:Src/gyro.c    **** 			(float)(raw_bias[3 + 6] / (float)(1 << 16)), (float)(raw_bias[4 + 6] / (float)(1 << 16)), (float
+ 386:Src/gyro.c    **** 
+ 387:Src/gyro.c    **** 	return rc;
+ 388:Src/gyro.c    **** }
+ 389:Src/gyro.c    **** 
+ 390:Src/gyro.c    **** static void apply_mouting_matrix(const int32_t mounting_matrix[9], const int16_t raw[3], int32_t ou
+ 391:Src/gyro.c    **** {
+  52              		.loc 1 391 0
+  53              		.cfi_startproc
+  54              		@ args = 0, pretend = 0, frame = 0
+  55              		@ frame_needed = 0, uses_anonymous_args = 0
+  56              	.LVL1:
+  57 0000 2DE9F043 		push	{r4, r5, r6, r7, r8, r9, lr}
+  58              	.LCFI0:
+  59              		.cfi_def_cfa_offset 28
+  60              		.cfi_offset 4, -28
+  61              		.cfi_offset 5, -24
+  62              		.cfi_offset 6, -20
+  63              		.cfi_offset 7, -16
+  64              		.cfi_offset 8, -12
+  65              		.cfi_offset 9, -8
+  66              		.cfi_offset 14, -4
+  67              	.LVL2:
+ 392:Src/gyro.c    **** 	unsigned i;
+ARM GAS  /tmp/ccDhQfGk.s 			page 9
+
+
+ 393:Src/gyro.c    **** 
+ 394:Src/gyro.c    **** 	for(i = 0; i < 3; i++) {
+  68              		.loc 1 394 0
+  69 0004 0026     		movs	r6, #0
+  70 0006 40E0     		b	.L5
+  71              	.LVL3:
+  72              	.L6:
+ 395:Src/gyro.c    **** 		out[i]  = (int32_t)((int64_t)mounting_matrix[3*i+0]*raw[0] >> 30);
+  73              		.loc 1 395 0 discriminator 3
+  74 0008 06EB4604 		add	r4, r6, r6, lsl #1
+  75 000c A300     		lsls	r3, r4, #2
+  76 000e 50F803C0 		ldr	ip, [r0, r3]
+  77 0012 4FEAEC79 		asr	r9, ip, #31
+  78 0016 B1F90040 		ldrsh	r4, [r1]
+  79 001a E517     		asrs	r5, r4, #31
+  80 001c 0CFB05F7 		mul	r7, ip, r5
+  81 0020 04FB0977 		mla	r7, r4, r9, r7
+  82 0024 ACFB0445 		umull	r4, r5, ip, r4
+  83 0028 3D44     		add	r5, r5, r7
+  84 002a A70F     		lsrs	r7, r4, #30
+  85 002c 47EA8507 		orr	r7, r7, r5, lsl #2
+  86 0030 42F82670 		str	r7, [r2, r6, lsl #2]
+ 396:Src/gyro.c    **** 		out[i] += (int32_t)((int64_t)mounting_matrix[3*i+1]*raw[1] >> 30);
+  87              		.loc 1 396 0 discriminator 3
+  88 0034 0344     		add	r3, r3, r0
+  89 0036 D3F804E0 		ldr	lr, [r3, #4]
+  90 003a 4FEAEE79 		asr	r9, lr, #31
+  91 003e B1F90240 		ldrsh	r4, [r1, #2]
+  92 0042 E517     		asrs	r5, r4, #31
+  93 0044 0EFB05FC 		mul	ip, lr, r5
+  94 0048 04FB09CC 		mla	ip, r4, r9, ip
+  95 004c AEFB0489 		umull	r8, r9, lr, r4
+  96 0050 E144     		add	r9, r9, ip
+  97 0052 4FEA9874 		lsr	r4, r8, #30
+  98 0056 44EA8904 		orr	r4, r4, r9, lsl #2
+  99 005a 2744     		add	r7, r7, r4
+ 100 005c 42F82670 		str	r7, [r2, r6, lsl #2]
+ 397:Src/gyro.c    **** 		out[i] += (int32_t)((int64_t)mounting_matrix[3*i+2]*raw[2] >> 30);
+ 101              		.loc 1 397 0 discriminator 3
+ 102 0060 D3F808C0 		ldr	ip, [r3, #8]
+ 103 0064 4FEAEC79 		asr	r9, ip, #31
+ 104 0068 B1F90440 		ldrsh	r4, [r1, #4]
+ 105 006c E517     		asrs	r5, r4, #31
+ 106 006e 0CFB05F3 		mul	r3, ip, r5
+ 107 0072 04FB0933 		mla	r3, r4, r9, r3
+ 108 0076 ACFB0445 		umull	r4, r5, ip, r4
+ 109 007a 1D44     		add	r5, r5, r3
+ 110 007c A30F     		lsrs	r3, r4, #30
+ 111 007e 43EA8503 		orr	r3, r3, r5, lsl #2
+ 112 0082 3B44     		add	r3, r3, r7
+ 113 0084 42F82630 		str	r3, [r2, r6, lsl #2]
+ 394:Src/gyro.c    **** 		out[i]  = (int32_t)((int64_t)mounting_matrix[3*i+0]*raw[0] >> 30);
+ 114              		.loc 1 394 0 discriminator 3
+ 115 0088 0136     		adds	r6, r6, #1
+ 116              	.LVL4:
+ 117              	.L5:
+ 394:Src/gyro.c    **** 		out[i]  = (int32_t)((int64_t)mounting_matrix[3*i+0]*raw[0] >> 30);
+ARM GAS  /tmp/ccDhQfGk.s 			page 10
+
+
+ 118              		.loc 1 394 0 is_stmt 0 discriminator 1
+ 119 008a 022E     		cmp	r6, #2
+ 120 008c BCD9     		bls	.L6
+ 398:Src/gyro.c    **** 	}
+ 399:Src/gyro.c    **** }
+ 121              		.loc 1 399 0 is_stmt 1
+ 122 008e BDE8F083 		pop	{r4, r5, r6, r7, r8, r9, pc}
+ 123              		.cfi_endproc
+ 124              	.LFE158:
+ 126              		.section	.text.ext_interrupt_cb,"ax",%progbits
+ 127              		.align	1
+ 128              		.global	ext_interrupt_cb
+ 129              		.syntax unified
+ 130              		.thumb
+ 131              		.thumb_func
+ 132              		.fpu fpv4-sp-d16
+ 134              	ext_interrupt_cb:
+ 135              	.LFB162:
+ 400:Src/gyro.c    **** 
+ 401:Src/gyro.c    **** int sensor_control(int enable)
+ 402:Src/gyro.c    **** {
+ 403:Src/gyro.c    **** 	int rc = 0;
+ 404:Src/gyro.c    **** 	static uint8_t sensors_on = 0;
+ 405:Src/gyro.c    **** 
+ 406:Src/gyro.c    **** 	/* Keep track of the sensors state */
+ 407:Src/gyro.c    **** 	if(enable && sensors_on)
+ 408:Src/gyro.c    **** 		return rc;
+ 409:Src/gyro.c    **** 
+ 410:Src/gyro.c    **** 	if(enable)
+ 411:Src/gyro.c    **** 		sensors_on = 1;
+ 412:Src/gyro.c    **** 	else
+ 413:Src/gyro.c    **** 		sensors_on = 0;
+ 414:Src/gyro.c    **** 
+ 415:Src/gyro.c    **** 	/* Handling of Game Rotation Vector (6-axis AG) */
+ 416:Src/gyro.c    **** //	if (enable) {
+ 417:Src/gyro.c    **** //		/* Handles the orientation algoritm state */
+ 418:Src/gyro.c    **** //		Algo_InvnOrientation_BodyToWorldFrameFxp_ResetStates(sGRV.C_buffer.buf);
+ 419:Src/gyro.c    **** //		Algo_InvnOrientation_BodyToWorldFrameFxp_AG_Enable(sGRV.C_buffer.buf);
+ 420:Src/gyro.c    **** //	} else
+ 421:Src/gyro.c    **** //		Algo_InvnOrientation_BodyToWorldFrameFxp_AG_Disable(sGRV.C_buffer.buf);
+ 422:Src/gyro.c    **** 
+ 423:Src/gyro.c    **** 	/*
+ 424:Src/gyro.c    **** 	 *  Call driver APIs to start/stop sensors
+ 425:Src/gyro.c    **** 	 */
+ 426:Src/gyro.c    **** 	if (enable) {
+ 427:Src/gyro.c    **** 		/* Clock is more accurate when gyro is enabled, so let's enable it first to prevent side effect a
+ 428:Src/gyro.c    **** 		if (!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_GYRO))
+ 429:Src/gyro.c    **** 			rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_GYRO, 1);
+ 430:Src/gyro.c    **** 		if (!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_ACCEL))
+ 431:Src/gyro.c    **** 			rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_ACCEL, 1);
+ 432:Src/gyro.c    **** 		if (!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_TEMPERATURE))
+ 433:Src/gyro.c    **** 			rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_TEMPERATURE, 1);
+ 434:Src/gyro.c    **** 		/*
+ 435:Src/gyro.c    **** 		 * There is a situation where two samples need to be dropped: if
+ 436:Src/gyro.c    **** 		 * accelerometer is enable before gyroscope first interrupt triggers,
+ 437:Src/gyro.c    **** 		 * both interrupts are raised causing the odr to be wrong if only one
+ 438:Src/gyro.c    **** 		 * sample is dropped.
+ARM GAS  /tmp/ccDhQfGk.s 			page 11
+
+
+ 439:Src/gyro.c    **** 		 * We are in this exact situation since both sensors are enabled one after
+ 440:Src/gyro.c    **** 		 * the other.
+ 441:Src/gyro.c    **** 		 */
+ 442:Src/gyro.c    **** 		timestamp_to_drop = 2;
+ 443:Src/gyro.c    **** 	} else {
+ 444:Src/gyro.c    **** 		rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_GYRO, 0);
+ 445:Src/gyro.c    **** 		rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_ACCEL, 0);
+ 446:Src/gyro.c    **** 		rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_TEMPERATURE, 0);
+ 447:Src/gyro.c    **** 	}
+ 448:Src/gyro.c    **** 
+ 449:Src/gyro.c    **** 	/* Clear the remaining items in the IRQ timestamp buffer when stopping all sensors */
+ 450:Src/gyro.c    **** 	if(inv_icm207xx_all_sensors_off(&icm_device))
+ 451:Src/gyro.c    **** 		rc += timer_clear_irq_timestamp();
+ 452:Src/gyro.c    **** 
+ 453:Src/gyro.c    **** 	return rc;
+ 454:Src/gyro.c    **** }
+ 455:Src/gyro.c    **** 
+ 456:Src/gyro.c    **** void notify_event(uint64_t timestamp)
+ 457:Src/gyro.c    **** {
+ 458:Src/gyro.c    **** 	xSensorEvent event;
+ 459:Src/gyro.c    **** 	memset(&event, 0, sizeof(event));
+ 460:Src/gyro.c    **** 
+ 461:Src/gyro.c    **** //	/*
+ 462:Src/gyro.c    **** //	 * New raw accel data
+ 463:Src/gyro.c    **** //	 */
+ 464:Src/gyro.c    **** //	event.sensor	= INV_SENSOR_TYPE_RAW_ACCELEROMETER;
+ 465:Src/gyro.c    **** //	event.timestamp = timestamp;
+ 466:Src/gyro.c    **** //	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 467:Src/gyro.c    **** //	event.data.raw3d.vect[0] = sRacc_data[0];
+ 468:Src/gyro.c    **** //	event.data.raw3d.vect[1] = sRacc_data[1];
+ 469:Src/gyro.c    **** //	event.data.raw3d.vect[2] = sRacc_data[2];
+ 470:Src/gyro.c    **** //
+ 471:Src/gyro.c    **** //	sensor_event(&event, NULL);
+ 472:Src/gyro.c    **** //
+ 473:Src/gyro.c    **** //	/*
+ 474:Src/gyro.c    **** //	 * New calibrated accel event
+ 475:Src/gyro.c    **** //	 */
+ 476:Src/gyro.c    **** //	event.sensor	= INV_SENSOR_TYPE_ACCELEROMETER;
+ 477:Src/gyro.c    **** //	event.timestamp = timestamp;
+ 478:Src/gyro.c    **** //	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 479:Src/gyro.c    **** //	event.data.acc.bias[0] = (float) sCalAcc.acc_bias_q16[0] / (1 << 16);
+ 480:Src/gyro.c    **** //	event.data.acc.bias[1] = (float) sCalAcc.acc_bias_q16[1] / (1 << 16);
+ 481:Src/gyro.c    **** //	event.data.acc.bias[2] = (float) sCalAcc.acc_bias_q16[2] / (1 << 16);
+ 482:Src/gyro.c    **** //	event.data.acc.vect[0] = (float) sCalAcc.acc_cal_q16[0] / (1 << 16);
+ 483:Src/gyro.c    **** //	event.data.acc.vect[1] = (float) sCalAcc.acc_cal_q16[1] / (1 << 16);
+ 484:Src/gyro.c    **** //	event.data.acc.vect[2] = (float) sCalAcc.acc_cal_q16[2] / (1 << 16);
+ 485:Src/gyro.c    **** //	event.data.acc.accuracy_flag = sCalAcc.accuracy_flag & DATA_ACCURACY_MASK;
+ 486:Src/gyro.c    **** //
+ 487:Src/gyro.c    **** //	sensor_event(&event, NULL);
+ 488:Src/gyro.c    **** //
+ 489:Src/gyro.c    **** //	/*
+ 490:Src/gyro.c    **** //	 * New raw gyro data
+ 491:Src/gyro.c    **** //	 */
+ 492:Src/gyro.c    **** //	event.sensor	= INV_SENSOR_TYPE_RAW_GYROSCOPE;
+ 493:Src/gyro.c    **** //	event.timestamp = timestamp;
+ 494:Src/gyro.c    **** //	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 495:Src/gyro.c    **** //	event.data.raw3d.vect[0] = sRgyro_data[0];
+ARM GAS  /tmp/ccDhQfGk.s 			page 12
+
+
+ 496:Src/gyro.c    **** //	event.data.raw3d.vect[1] = sRgyro_data[1];
+ 497:Src/gyro.c    **** //	event.data.raw3d.vect[2] = sRgyro_data[2];
+ 498:Src/gyro.c    **** //
+ 499:Src/gyro.c    **** //	sensor_event(&event, NULL);
+ 500:Src/gyro.c    **** //
+ 501:Src/gyro.c    **** //	/*
+ 502:Src/gyro.c    **** //	 * New uncalibrated gyro event
+ 503:Src/gyro.c    **** //	 */
+ 504:Src/gyro.c    **** //	event.sensor	= INV_SENSOR_TYPE_UNCAL_GYROSCOPE;
+ 505:Src/gyro.c    **** //	event.timestamp = timestamp;
+ 506:Src/gyro.c    **** //	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 507:Src/gyro.c    **** //	event.data.gyr.bias[0] = (float) sCalGyr.gyr_bias_q16[0] / (1 << 16);
+ 508:Src/gyro.c    **** //	event.data.gyr.bias[1] = (float) sCalGyr.gyr_bias_q16[1] / (1 << 16);
+ 509:Src/gyro.c    **** //	event.data.gyr.bias[2] = (float) sCalGyr.gyr_bias_q16[2] / (1 << 16);
+ 510:Src/gyro.c    **** //	event.data.gyr.vect[0] = (float) sCalGyr.gyr_uncal_q16[0] / (1 << 16);
+ 511:Src/gyro.c    **** //	event.data.gyr.vect[1] = (float) sCalGyr.gyr_uncal_q16[1] / (1 << 16);
+ 512:Src/gyro.c    **** //	event.data.gyr.vect[2] = (float) sCalGyr.gyr_uncal_q16[2] / (1 << 16);
+ 513:Src/gyro.c    **** //	event.data.gyr.accuracy_flag = sCalGyr.accuracy_flag & DATA_ACCURACY_MASK;
+ 514:Src/gyro.c    **** //
+ 515:Src/gyro.c    **** //	sensor_event(&event, NULL);
+ 516:Src/gyro.c    **** //
+ 517:Src/gyro.c    **** //	/*
+ 518:Src/gyro.c    **** //	 * New calibrated gyro event
+ 519:Src/gyro.c    **** //	 */
+ 520:Src/gyro.c    **** //	event.sensor	= INV_SENSOR_TYPE_GYROSCOPE;
+ 521:Src/gyro.c    **** //	event.timestamp = timestamp;
+ 522:Src/gyro.c    **** //	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 523:Src/gyro.c    **** //	event.data.gyr.bias[0] = (float) sCalGyr.gyr_bias_q16[0] / (1 << 16);
+ 524:Src/gyro.c    **** //	event.data.gyr.bias[1] = (float) sCalGyr.gyr_bias_q16[1] / (1 << 16);
+ 525:Src/gyro.c    **** //	event.data.gyr.bias[2] = (float) sCalGyr.gyr_bias_q16[2] / (1 << 16);
+ 526:Src/gyro.c    **** //	event.data.gyr.vect[0] = (float) sCalGyr.gyr_cal_q16[0] / (1 << 16);
+ 527:Src/gyro.c    **** //	event.data.gyr.vect[1] = (float) sCalGyr.gyr_cal_q16[1] / (1 << 16);
+ 528:Src/gyro.c    **** //	event.data.gyr.vect[2] = (float) sCalGyr.gyr_cal_q16[2] / (1 << 16);
+ 529:Src/gyro.c    **** //	event.data.gyr.accuracy_flag = sCalGyr.accuracy_flag & DATA_ACCURACY_MASK;
+ 530:Src/gyro.c    **** //
+ 531:Src/gyro.c    **** //	sensor_event(&event, NULL);
+ 532:Src/gyro.c    **** //
+ 533:Src/gyro.c    **** 	/*
+ 534:Src/gyro.c    **** 	 * New GRV event
+ 535:Src/gyro.c    **** 	 * scheduled on gyroscope data update
+ 536:Src/gyro.c    **** 	 */
+ 537:Src/gyro.c    **** 	event.sensor	= INV_SENSOR_TYPE_GAME_ROTATION_VECTOR;
+ 538:Src/gyro.c    **** 	//event.timestamp = timestamp;
+ 539:Src/gyro.c    **** 	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 540:Src/gyro.c    **** 	event.data.quaternion.quat[0] = (float)sGRV.grv_quat_q30[0] / (1 << 30);
+ 541:Src/gyro.c    **** 	event.data.quaternion.quat[1] = (float)sGRV.grv_quat_q30[1] / (1 << 30);
+ 542:Src/gyro.c    **** 	event.data.quaternion.quat[2] = (float)sGRV.grv_quat_q30[2] / (1 << 30);
+ 543:Src/gyro.c    **** 	event.data.quaternion.quat[3] = (float)sGRV.grv_quat_q30[3] / (1 << 30);
+ 544:Src/gyro.c    **** 	/* Report additionnal accuracy flag, being currently a copy of GYR accuracy flag (ACC flag could a
+ 545:Src/gyro.c    **** 	event.data.quaternion.accuracy_flag = sCalGyr.accuracy_flag & DATA_ACCURACY_MASK;
+ 546:Src/gyro.c    **** 
+ 547:Src/gyro.c    **** 	sensor_event(&event, NULL);
+ 548:Src/gyro.c    **** //
+ 549:Src/gyro.c    **** //	/*
+ 550:Src/gyro.c    **** //	 * New gravity event
+ 551:Src/gyro.c    **** //	 */
+ 552:Src/gyro.c    **** //	event.sensor	= INV_SENSOR_TYPE_GRAVITY;
+ARM GAS  /tmp/ccDhQfGk.s 			page 13
+
+
+ 553:Src/gyro.c    **** //	event.timestamp = timestamp;
+ 554:Src/gyro.c    **** //	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 555:Src/gyro.c    **** //	event.data.acc.vect[0] = (float)sGRV.gravity_q16[0] / (1 << 16);
+ 556:Src/gyro.c    **** //	event.data.acc.vect[1] = (float)sGRV.gravity_q16[1] / (1 << 16);
+ 557:Src/gyro.c    **** //	event.data.acc.vect[2] = (float)sGRV.gravity_q16[2] / (1 << 16);
+ 558:Src/gyro.c    **** //	/* Report additionnal accuracy flag, being currently the copy of GRV accuracy flag (copied from 
+ 559:Src/gyro.c    **** //	event.data.acc.accuracy_flag = sCalGyr.accuracy_flag & DATA_ACCURACY_MASK;
+ 560:Src/gyro.c    **** //
+ 561:Src/gyro.c    **** //	sensor_event(&event, NULL);
+ 562:Src/gyro.c    **** 
+ 563:Src/gyro.c    **** 	/*
+ 564:Src/gyro.c    **** 	 * New linear acceleration event
+ 565:Src/gyro.c    **** 	 */
+ 566:Src/gyro.c    **** //	event.sensor	= INV_SENSOR_TYPE_LINEAR_ACCELERATION;
+ 567:Src/gyro.c    **** //	event.timestamp = timestamp;
+ 568:Src/gyro.c    **** //	event.status	= INV_SENSOR_STATUS_DATA_UPDATED;
+ 569:Src/gyro.c    **** //	event.data.acc.vect[0] = (float)sGRV.linearacc_q16[0] / (1 << 16);
+ 570:Src/gyro.c    **** //	event.data.acc.vect[1] = (float)sGRV.linearacc_q16[1] / (1 << 16);
+ 571:Src/gyro.c    **** //	event.data.acc.vect[2] = (float)sGRV.linearacc_q16[2] / (1 << 16);
+ 572:Src/gyro.c    **** //	/* Report additionnal accuracy flag, being currently the copy of GRV accuracy flag (copied from 
+ 573:Src/gyro.c    **** //	event.data.acc.accuracy_flag = sCalGyr.accuracy_flag & DATA_ACCURACY_MASK;
+ 574:Src/gyro.c    **** //
+ 575:Src/gyro.c    **** //	sensor_event(&event, NULL);
+ 576:Src/gyro.c    **** }
+ 577:Src/gyro.c    **** 
+ 578:Src/gyro.c    **** void sensor_event(const xSensorEvent * event, void * arg)
+ 579:Src/gyro.c    **** {
+ 580:Src/gyro.c    **** 	/* arg will contained the value provided at init time */
+ 581:Src/gyro.c    **** 	(void)arg;
+ 582:Src/gyro.c    **** //	char out_str[256];
+ 583:Src/gyro.c    **** //	unsigned char * ptr = (unsigned char *)out_str;
+ 584:Src/gyro.c    **** //	unsigned char idx = 0;
+ 585:Src/gyro.c    **** //	idx += snprintf(&out_str[idx], sizeof(out_str) - idx, "%u|", event->sensor);
+ 586:Src/gyro.c    **** //	idx += snprintf(&out_str[idx], sizeof(out_str) - idx, "%lu|", (uint32_t)event->timestamp);
+ 587:Src/gyro.c    **** //	idx += snprintf(&out_str[idx], sizeof(out_str) - idx, "%d|", event->status);
+ 588:Src/gyro.c    **** //	idx += snprintf(&out_str[idx], sizeof(out_str) - idx, "%f|", event->data.acc.vect[0]);
+ 589:Src/gyro.c    **** //	idx += snprintf(&out_str[idx], sizeof(out_str) - idx, "%f|", event->data.acc.vect[1]);
+ 590:Src/gyro.c    **** //	idx += snprintf(&out_str[idx], sizeof(out_str) - idx, "%f|", event->data.acc.vect[2]);
+ 591:Src/gyro.c    **** //	idx += snprintf(&out_str[idx], sizeof(out_str) - idx, "\r\n");
+ 592:Src/gyro.c    **** //	HAL_UART_Transmit(&huart6, (uint8_t *)&ptr, idx+1, 1000);
+ 593:Src/gyro.c    **** 
+ 594:Src/gyro.c    **** //	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+ 595:Src/gyro.c    **** //	HAL_SPI_Transmit(&hspi2, (uint8_t *)event, sizeof(xSensorEvent), 20);
+ 596:Src/gyro.c    **** //	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+ 597:Src/gyro.c    **** }
+ 598:Src/gyro.c    **** 
+ 599:Src/gyro.c    **** /*
+ 600:Src/gyro.c    ****  * Callback called upon external interrupt line rising
+ 601:Src/gyro.c    ****  */
+ 602:Src/gyro.c    **** void ext_interrupt_cb(int int_num)
+ 603:Src/gyro.c    **** {
+ 136              		.loc 1 603 0
+ 137              		.cfi_startproc
+ 138              		@ args = 0, pretend = 0, frame = 0
+ 139              		@ frame_needed = 0, uses_anonymous_args = 0
+ 140              		@ link register save eliminated.
+ 141              	.LVL5:
+ARM GAS  /tmp/ccDhQfGk.s 			page 14
+
+
+ 604:Src/gyro.c    **** 	irq_from_device |= int_num;
+ 142              		.loc 1 604 0
+ 143 0000 024A     		ldr	r2, .L9
+ 144 0002 1368     		ldr	r3, [r2]
+ 145 0004 1843     		orrs	r0, r0, r3
+ 146              	.LVL6:
+ 147 0006 1060     		str	r0, [r2]
+ 605:Src/gyro.c    **** }
+ 148              		.loc 1 605 0
+ 149 0008 7047     		bx	lr
+ 150              	.L10:
+ 151 000a 00BF     		.align	2
+ 152              	.L9:
+ 153 000c 00000000 		.word	.LANCHOR0
+ 154              		.cfi_endproc
+ 155              	.LFE162:
+ 157              		.section	.text.spi_master_write_register,"ax",%progbits
+ 158              		.align	1
+ 159              		.syntax unified
+ 160              		.thumb
+ 161              		.thumb_func
+ 162              		.fpu fpv4-sp-d16
+ 164              	spi_master_write_register:
+ 165              	.LFB153:
+ 253:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+ 166              		.loc 1 253 0
+ 167              		.cfi_startproc
+ 168              		@ args = 0, pretend = 0, frame = 8
+ 169              		@ frame_needed = 0, uses_anonymous_args = 0
+ 170              	.LVL7:
+ 171 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 172              	.LCFI1:
+ 173              		.cfi_def_cfa_offset 24
+ 174              		.cfi_offset 4, -24
+ 175              		.cfi_offset 5, -20
+ 176              		.cfi_offset 6, -16
+ 177              		.cfi_offset 7, -12
+ 178              		.cfi_offset 8, -8
+ 179              		.cfi_offset 14, -4
+ 180 0004 82B0     		sub	sp, sp, #8
+ 181              	.LCFI2:
+ 182              		.cfi_def_cfa_offset 32
+ 183 0006 0646     		mov	r6, r0
+ 184 0008 9046     		mov	r8, r2
+ 185 000a 1F46     		mov	r7, r3
+ 186 000c 02AC     		add	r4, sp, #8
+ 187 000e 04F8011D 		strb	r1, [r4, #-1]!
+ 254:Src/gyro.c    **** 	HAL_SPI_Transmit(hspi, &register_addr, sizeof(register_addr), SPIx_FLAG_TIMEOUT);
+ 188              		.loc 1 254 0
+ 189 0012 0E4D     		ldr	r5, .L13
+ 190 0014 0022     		movs	r2, #0
+ 191              	.LVL8:
+ 192 0016 1021     		movs	r1, #16
+ 193              	.LVL9:
+ 194 0018 2846     		mov	r0, r5
+ 195              	.LVL10:
+ 196 001a FFF7FEFF 		bl	HAL_GPIO_WritePin
+ARM GAS  /tmp/ccDhQfGk.s 			page 15
+
+
+ 197              	.LVL11:
+ 255:Src/gyro.c    **** 	HAL_SPI_Transmit(hspi, register_value, register_len, SPIx_FLAG_TIMEOUT);
+ 198              		.loc 1 255 0
+ 199 001e 4FF46173 		mov	r3, #900
+ 200 0022 0122     		movs	r2, #1
+ 201 0024 2146     		mov	r1, r4
+ 202 0026 3046     		mov	r0, r6
+ 203 0028 FFF7FEFF 		bl	HAL_SPI_Transmit
+ 204              	.LVL12:
+ 256:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+ 205              		.loc 1 256 0
+ 206 002c 4FF46173 		mov	r3, #900
+ 207 0030 4246     		mov	r2, r8
+ 208 0032 3946     		mov	r1, r7
+ 209 0034 3046     		mov	r0, r6
+ 210 0036 FFF7FEFF 		bl	HAL_SPI_Transmit
+ 211              	.LVL13:
+ 257:Src/gyro.c    **** 	return 0;
+ 212              		.loc 1 257 0
+ 213 003a 0122     		movs	r2, #1
+ 214 003c 1021     		movs	r1, #16
+ 215 003e 2846     		mov	r0, r5
+ 216 0040 FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 217              	.LVL14:
+ 259:Src/gyro.c    **** 
+ 218              		.loc 1 259 0
+ 219 0044 0020     		movs	r0, #0
+ 220 0046 02B0     		add	sp, sp, #8
+ 221              	.LCFI3:
+ 222              		.cfi_def_cfa_offset 24
+ 223              		@ sp needed
+ 224 0048 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 225              	.LVL15:
+ 226              	.L14:
+ 227              		.align	2
+ 228              	.L13:
+ 229 004c 00000240 		.word	1073872896
+ 230              		.cfi_endproc
+ 231              	.LFE153:
+ 233              		.section	.text.idd_io_hal_write_reg,"ax",%progbits
+ 234              		.align	1
+ 235              		.syntax unified
+ 236              		.thumb
+ 237              		.thumb_func
+ 238              		.fpu fpv4-sp-d16
+ 240              	idd_io_hal_write_reg:
+ 241              	.LFB151:
+ 235:Src/gyro.c    **** 	SPI_HandleTypeDef *spi = context;
+ 242              		.loc 1 235 0
+ 243              		.cfi_startproc
+ 244              		@ args = 0, pretend = 0, frame = 0
+ 245              		@ frame_needed = 0, uses_anonymous_args = 0
+ 246              	.LVL16:
+ 247 0000 10B5     		push	{r4, lr}
+ 248              	.LCFI4:
+ 249              		.cfi_def_cfa_offset 8
+ 250              		.cfi_offset 4, -8
+ARM GAS  /tmp/ccDhQfGk.s 			page 16
+
+
+ 251              		.cfi_offset 14, -4
+ 252              	.LVL17:
+ 237:Src/gyro.c    **** }
+ 253              		.loc 1 237 0
+ 254 0002 9CB2     		uxth	r4, r3
+ 255 0004 1346     		mov	r3, r2
+ 256              	.LVL18:
+ 257 0006 2246     		mov	r2, r4
+ 258              	.LVL19:
+ 259 0008 FFF7FEFF 		bl	spi_master_write_register
+ 260              	.LVL20:
+ 238:Src/gyro.c    **** 
+ 261              		.loc 1 238 0
+ 262 000c 10BD     		pop	{r4, pc}
+ 263              		.cfi_endproc
+ 264              	.LFE151:
+ 266              		.section	.text.spi_master_read_register,"ax",%progbits
+ 267              		.align	1
+ 268              		.syntax unified
+ 269              		.thumb
+ 270              		.thumb_func
+ 271              		.fpu fpv4-sp-d16
+ 273              	spi_master_read_register:
+ 274              	.LFB152:
+ 242:Src/gyro.c    **** 	register_addr = READ_BIT_MASK | register_addr;
+ 275              		.loc 1 242 0
+ 276              		.cfi_startproc
+ 277              		@ args = 0, pretend = 0, frame = 8
+ 278              		@ frame_needed = 0, uses_anonymous_args = 0
+ 279              	.LVL21:
+ 280 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 281              	.LCFI5:
+ 282              		.cfi_def_cfa_offset 24
+ 283              		.cfi_offset 4, -24
+ 284              		.cfi_offset 5, -20
+ 285              		.cfi_offset 6, -16
+ 286              		.cfi_offset 7, -12
+ 287              		.cfi_offset 8, -8
+ 288              		.cfi_offset 14, -4
+ 289 0004 82B0     		sub	sp, sp, #8
+ 290              	.LCFI6:
+ 291              		.cfi_def_cfa_offset 32
+ 292 0006 0646     		mov	r6, r0
+ 293 0008 9046     		mov	r8, r2
+ 294 000a 1F46     		mov	r7, r3
+ 243:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+ 295              		.loc 1 243 0
+ 296 000c 61F07F01 		orn	r1, r1, #127
+ 297              	.LVL22:
+ 298 0010 02AC     		add	r4, sp, #8
+ 299 0012 04F8011D 		strb	r1, [r4, #-1]!
+ 244:Src/gyro.c    **** 	HAL_SPI_Transmit(hspi, &register_addr, sizeof(register_addr), SPIx_FLAG_TIMEOUT);
+ 300              		.loc 1 244 0
+ 301 0016 0E4D     		ldr	r5, .L19
+ 302 0018 0022     		movs	r2, #0
+ 303              	.LVL23:
+ 304 001a 1021     		movs	r1, #16
+ARM GAS  /tmp/ccDhQfGk.s 			page 17
+
+
+ 305 001c 2846     		mov	r0, r5
+ 306              	.LVL24:
+ 307 001e FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 308              	.LVL25:
+ 245:Src/gyro.c    **** 	HAL_SPI_Receive(hspi, register_value, register_len, SPIx_FLAG_TIMEOUT);
+ 309              		.loc 1 245 0
+ 310 0022 4FF46173 		mov	r3, #900
+ 311 0026 0122     		movs	r2, #1
+ 312 0028 2146     		mov	r1, r4
+ 313 002a 3046     		mov	r0, r6
+ 314 002c FFF7FEFF 		bl	HAL_SPI_Transmit
+ 315              	.LVL26:
+ 246:Src/gyro.c    **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+ 316              		.loc 1 246 0
+ 317 0030 4FF46173 		mov	r3, #900
+ 318 0034 4246     		mov	r2, r8
+ 319 0036 3946     		mov	r1, r7
+ 320 0038 3046     		mov	r0, r6
+ 321 003a FFF7FEFF 		bl	HAL_SPI_Receive
+ 322              	.LVL27:
+ 247:Src/gyro.c    **** 	return 0;
+ 323              		.loc 1 247 0
+ 324 003e 0122     		movs	r2, #1
+ 325 0040 1021     		movs	r1, #16
+ 326 0042 2846     		mov	r0, r5
+ 327 0044 FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 328              	.LVL28:
+ 249:Src/gyro.c    **** 
+ 329              		.loc 1 249 0
+ 330 0048 0020     		movs	r0, #0
+ 331 004a 02B0     		add	sp, sp, #8
+ 332              	.LCFI7:
+ 333              		.cfi_def_cfa_offset 24
+ 334              		@ sp needed
+ 335 004c BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 336              	.LVL29:
+ 337              	.L20:
+ 338              		.align	2
+ 339              	.L19:
+ 340 0050 00000240 		.word	1073872896
+ 341              		.cfi_endproc
+ 342              	.LFE152:
+ 344              		.section	.text.idd_io_hal_read_reg,"ax",%progbits
+ 345              		.align	1
+ 346              		.syntax unified
+ 347              		.thumb
+ 348              		.thumb_func
+ 349              		.fpu fpv4-sp-d16
+ 351              	idd_io_hal_read_reg:
+ 352              	.LFB150:
+ 229:Src/gyro.c    **** 	SPI_HandleTypeDef *spi = context;
+ 353              		.loc 1 229 0
+ 354              		.cfi_startproc
+ 355              		@ args = 0, pretend = 0, frame = 0
+ 356              		@ frame_needed = 0, uses_anonymous_args = 0
+ 357              	.LVL30:
+ 358 0000 10B5     		push	{r4, lr}
+ARM GAS  /tmp/ccDhQfGk.s 			page 18
+
+
+ 359              	.LCFI8:
+ 360              		.cfi_def_cfa_offset 8
+ 361              		.cfi_offset 4, -8
+ 362              		.cfi_offset 14, -4
+ 363              	.LVL31:
+ 231:Src/gyro.c    **** }
+ 364              		.loc 1 231 0
+ 365 0002 9CB2     		uxth	r4, r3
+ 366 0004 1346     		mov	r3, r2
+ 367              	.LVL32:
+ 368 0006 2246     		mov	r2, r4
+ 369              	.LVL33:
+ 370 0008 FFF7FEFF 		bl	spi_master_read_register
+ 371              	.LVL34:
+ 232:Src/gyro.c    **** 
+ 372              		.loc 1 232 0
+ 373 000c 10BD     		pop	{r4, pc}
+ 374              		.cfi_endproc
+ 375              	.LFE150:
+ 377              		.section	.text.algorithms_init,"ax",%progbits
+ 378              		.align	1
+ 379              		.syntax unified
+ 380              		.thumb
+ 381              		.thumb_func
+ 382              		.fpu fpv4-sp-d16
+ 384              	algorithms_init:
+ 385              	.LFB164:
+ 606:Src/gyro.c    **** 
+ 607:Src/gyro.c    **** int sensor_configure_odr(int odr_us)
+ 608:Src/gyro.c    **** {
+ 609:Src/gyro.c    **** 	int rc = 0;
+ 610:Src/gyro.c    **** 
+ 611:Src/gyro.c    **** 	/* All sensors running at the same rate */
+ 612:Src/gyro.c    **** 
+ 613:Src/gyro.c    **** 	/* Do not reconfigure the rate if it's already applied */
+ 614:Src/gyro.c    **** 	if(odr_us == period_us)
+ 615:Src/gyro.c    **** 		return rc;
+ 616:Src/gyro.c    **** 
+ 617:Src/gyro.c    **** 	/*
+ 618:Src/gyro.c    **** 	 * Maximum supported rate is 1kHz
+ 619:Src/gyro.c    **** 	 */
+ 620:Src/gyro.c    **** 	if(odr_us < MIN_ODR_US)
+ 621:Src/gyro.c    **** 		odr_us = MIN_ODR_US;
+ 622:Src/gyro.c    **** 
+ 623:Src/gyro.c    **** 	/*
+ 624:Src/gyro.c    **** 	 * Minimum rate supported is 50Hz
+ 625:Src/gyro.c    **** 	 * - To compute a correct orientation with the GRV algorithm
+ 626:Src/gyro.c    **** 	 * - For accelerometer sensor using gyro-assisted calibration.
+ 627:Src/gyro.c    **** 	 * The basic accelerometer and gyroscope sensor could report at lower frequency, but we simplify t
+ 628:Src/gyro.c    **** 	 */
+ 629:Src/gyro.c    **** 	if(odr_us > MAX_ODR_US)
+ 630:Src/gyro.c    **** 		odr_us = MAX_ODR_US;
+ 631:Src/gyro.c    **** 	/*
+ 632:Src/gyro.c    **** 	 *  Call driver APIs to start/stop sensors
+ 633:Src/gyro.c    **** 	 */
+ 634:Src/gyro.c    **** 	rc = inv_icm207xx_set_sensor_period(&icm_device, INV_ICM207XX_SENSOR_ACCEL, odr_us / 1000);
+ 635:Src/gyro.c    **** 	rc += inv_icm207xx_set_sensor_period(&icm_device, INV_ICM207XX_SENSOR_GYRO, odr_us / 1000);
+ARM GAS  /tmp/ccDhQfGk.s 			page 19
+
+
+ 636:Src/gyro.c    **** 	/* FIFO has been reset by ODR change */
+ 637:Src/gyro.c    **** 	if (rc == 0) {
+ 638:Src/gyro.c    **** 		rc += timer_clear_irq_timestamp();
+ 639:Src/gyro.c    **** 		/* Clear any remaining interrupts */
+ 640:Src/gyro.c    **** 		//__disable_irq();
+ 641:Src/gyro.c    **** 		irq_from_device &= ~1;
+ 642:Src/gyro.c    **** 		//__enable_irq();
+ 643:Src/gyro.c    **** 	}
+ 644:Src/gyro.c    **** 
+ 645:Src/gyro.c    **** 	/* Keep track in static variable of the odr value for further algorihtm use */
+ 646:Src/gyro.c    **** 	period_us = odr_us;
+ 647:Src/gyro.c    **** 
+ 648:Src/gyro.c    **** 	/*
+ 649:Src/gyro.c    **** 	 * Update algorithm parameters for Gyroscope calibration
+ 650:Src/gyro.c    **** 	 */
+ 651:Src/gyro.c    **** 	Algo_InvnCalibration_GyroCalibrationFxp_SetSamplingPeriod(sCalGyr.C_buffer.buf, odr_us);
+ 652:Src/gyro.c    **** 
+ 653:Src/gyro.c    **** 	/*
+ 654:Src/gyro.c    **** 	 * Update algorithm parameters for Accelerometer calibration
+ 655:Src/gyro.c    **** 	 */
+ 656:Src/gyro.c    **** 	Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_SetSamplingPeriod(sCalAcc.C_buffer.buf, odr_u
+ 657:Src/gyro.c    **** 
+ 658:Src/gyro.c    **** 	/*
+ 659:Src/gyro.c    **** 	 * Update algorithm parameters for GRV orientation
+ 660:Src/gyro.c    **** 	 */
+ 661:Src/gyro.c    **** 	Algo_InvnOrientation_BodyToWorldFrameFxp_SetGyrSamplingPeriod(sGRV.C_buffer.buf, odr_us, chip_info
+ 662:Src/gyro.c    **** 	Algo_InvnOrientation_BodyToWorldFrameFxp_SetAccSamplingPeriod(sGRV.C_buffer.buf, odr_us, chip_info
+ 663:Src/gyro.c    **** 
+ 664:Src/gyro.c    **** 	return rc;
+ 665:Src/gyro.c    **** }
+ 666:Src/gyro.c    **** 
+ 667:Src/gyro.c    **** void algorithms_init(void)
+ 668:Src/gyro.c    **** {
+ 386              		.loc 1 668 0
+ 387              		.cfi_startproc
+ 388              		@ args = 0, pretend = 0, frame = 16
+ 389              		@ frame_needed = 0, uses_anonymous_args = 0
+ 390 0000 10B5     		push	{r4, lr}
+ 391              	.LCFI9:
+ 392              		.cfi_def_cfa_offset 8
+ 393              		.cfi_offset 4, -8
+ 394              		.cfi_offset 14, -4
+ 395 0002 84B0     		sub	sp, sp, #16
+ 396              	.LCFI10:
+ 397              		.cfi_def_cfa_offset 24
+ 669:Src/gyro.c    **** 	int32_t gyro_offset_2000dps_q30[3] = {
+ 670:Src/gyro.c    **** 		((sCalGyr.gyr_bias_q16[0] << 3) / 2000) << (30 - 16 - 3),
+ 398              		.loc 1 670 0
+ 399 0004 1A4C     		ldr	r4, .L25
+ 400 0006 626A     		ldr	r2, [r4, #36]
+ 401 0008 D200     		lsls	r2, r2, #3
+ 402 000a 1A49     		ldr	r1, .L25+4
+ 403 000c 81FB0203 		smull	r0, r3, r1, r2
+ 404 0010 D217     		asrs	r2, r2, #31
+ 405 0012 C2EBE312 		rsb	r2, r2, r3, asr #7
+ 406 0016 D202     		lsls	r2, r2, #11
+ 669:Src/gyro.c    **** 	int32_t gyro_offset_2000dps_q30[3] = {
+ARM GAS  /tmp/ccDhQfGk.s 			page 20
+
+
+ 407              		.loc 1 669 0
+ 408 0018 0192     		str	r2, [sp, #4]
+ 671:Src/gyro.c    **** 		((sCalGyr.gyr_bias_q16[1] << 3) / 2000) << (30 - 16 - 3),
+ 409              		.loc 1 671 0
+ 410 001a A26A     		ldr	r2, [r4, #40]
+ 411 001c D200     		lsls	r2, r2, #3
+ 412 001e 81FB0203 		smull	r0, r3, r1, r2
+ 413 0022 D217     		asrs	r2, r2, #31
+ 414 0024 C2EBE312 		rsb	r2, r2, r3, asr #7
+ 415 0028 D202     		lsls	r2, r2, #11
+ 669:Src/gyro.c    **** 	int32_t gyro_offset_2000dps_q30[3] = {
+ 416              		.loc 1 669 0
+ 417 002a 0292     		str	r2, [sp, #8]
+ 672:Src/gyro.c    **** 		((sCalGyr.gyr_bias_q16[2] << 3) / 2000) << (30 - 16 - 3)
+ 418              		.loc 1 672 0
+ 419 002c E36A     		ldr	r3, [r4, #44]
+ 420 002e DB00     		lsls	r3, r3, #3
+ 421 0030 81FB0321 		smull	r2, r1, r1, r3
+ 422 0034 DB17     		asrs	r3, r3, #31
+ 423 0036 C3EBE113 		rsb	r3, r3, r1, asr #7
+ 424 003a DB02     		lsls	r3, r3, #11
+ 669:Src/gyro.c    **** 	int32_t gyro_offset_2000dps_q30[3] = {
+ 425              		.loc 1 669 0
+ 426 003c 0393     		str	r3, [sp, #12]
+ 673:Src/gyro.c    **** 	};
+ 674:Src/gyro.c    **** 
+ 675:Src/gyro.c    **** 	/* Reset the algorithm and the accuracy to 0 and re-apply known offsets (could be stored in flash)
+ 676:Src/gyro.c    **** 	Algo_InvnCalibration_GyroCalibrationFxp_Init(sCalGyr.C_buffer.buf, gyro_offset_2000dps_q30, 0);
+ 427              		.loc 1 676 0
+ 428 003e 3434     		adds	r4, r4, #52
+ 429 0040 0022     		movs	r2, #0
+ 430 0042 01A9     		add	r1, sp, #4
+ 431 0044 2046     		mov	r0, r4
+ 432 0046 FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_Init
+ 433              	.LVL35:
+ 677:Src/gyro.c    **** 	Algo_InvnCalibration_GyroCalibrationFxp_SetUserParam(sCalGyr.C_buffer.buf, 0, HMD_VR_MODE);
+ 434              		.loc 1 677 0
+ 435 004a 0022     		movs	r2, #0
+ 436 004c 1146     		mov	r1, r2
+ 437 004e 2046     		mov	r0, r4
+ 438 0050 FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_SetUserParam
+ 439              	.LVL36:
+ 678:Src/gyro.c    **** 
+ 679:Src/gyro.c    **** 	/*
+ 680:Src/gyro.c    **** 	 * Init the accelerometer calibration
+ 681:Src/gyro.c    **** 	 */
+ 682:Src/gyro.c    **** 	Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_Init(sCalAcc.C_buffer.buf, sCalAcc.acc_bias_q
+ 440              		.loc 1 682 0
+ 441 0054 0848     		ldr	r0, .L25+8
+ 442 0056 094B     		ldr	r3, .L25+12
+ 443 0058 1B68     		ldr	r3, [r3]
+ 444 005a 0022     		movs	r2, #0
+ 445 005c 00F10C01 		add	r1, r0, #12
+ 446 0060 1C30     		adds	r0, r0, #28
+ 447 0062 FFF7FEFF 		bl	Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_Init
+ 448              	.LVL37:
+ 683:Src/gyro.c    **** 
+ARM GAS  /tmp/ccDhQfGk.s 			page 21
+
+
+ 684:Src/gyro.c    **** 	/*
+ 685:Src/gyro.c    **** 	 * Init the GRV orientation
+ 686:Src/gyro.c    **** 	 */
+ 687:Src/gyro.c    **** 	Algo_InvnOrientation_BodyToWorldFrameFxp_Init(sGRV.C_buffer.buf);
+ 449              		.loc 1 687 0
+ 450 0066 0648     		ldr	r0, .L25+16
+ 451 0068 FFF7FEFF 		bl	Algo_InvnOrientation_BodyToWorldFrameFxp_Init
+ 452              	.LVL38:
+ 688:Src/gyro.c    **** }
+ 453              		.loc 1 688 0
+ 454 006c 04B0     		add	sp, sp, #16
+ 455              	.LCFI11:
+ 456              		.cfi_def_cfa_offset 8
+ 457              		@ sp needed
+ 458 006e 10BD     		pop	{r4, pc}
+ 459              	.L26:
+ 460              		.align	2
+ 461              	.L25:
+ 462 0070 00000000 		.word	.LANCHOR1
+ 463 0074 D34D6210 		.word	274877907
+ 464 0078 00000000 		.word	.LANCHOR3
+ 465 007c 00000000 		.word	.LANCHOR2
+ 466 0080 28000000 		.word	.LANCHOR4+40
+ 467              		.cfi_endproc
+ 468              	.LFE164:
+ 470              		.section	.text.algorithms_process,"ax",%progbits
+ 471              		.align	1
+ 472              		.syntax unified
+ 473              		.thumb
+ 474              		.thumb_func
+ 475              		.fpu fpv4-sp-d16
+ 477              	algorithms_process:
+ 478              	.LFB165:
+ 689:Src/gyro.c    **** 
+ 690:Src/gyro.c    **** 
+ 691:Src/gyro.c    **** void algorithms_process(void)
+ 692:Src/gyro.c    **** {
+ 479              		.loc 1 692 0
+ 480              		.cfi_startproc
+ 481              		@ args = 0, pretend = 0, frame = 64
+ 482              		@ frame_needed = 0, uses_anonymous_args = 0
+ 483 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 484              	.LCFI12:
+ 485              		.cfi_def_cfa_offset 36
+ 486              		.cfi_offset 4, -36
+ 487              		.cfi_offset 5, -32
+ 488              		.cfi_offset 6, -28
+ 489              		.cfi_offset 7, -24
+ 490              		.cfi_offset 8, -20
+ 491              		.cfi_offset 9, -16
+ 492              		.cfi_offset 10, -12
+ 493              		.cfi_offset 11, -8
+ 494              		.cfi_offset 14, -4
+ 495 0004 91B0     		sub	sp, sp, #68
+ 496              	.LCFI13:
+ 497              		.cfi_def_cfa_offset 104
+ 693:Src/gyro.c    **** 	/* Get the temperature value by applying the sensitivity 326.8 LSB/degC and adding 25degC offset *
+ARM GAS  /tmp/ccDhQfGk.s 			page 22
+
+
+ 694:Src/gyro.c    **** 	const int32_t temp_degC_q16 = (((int32_t)(sRtemp_data << 16)) / 3268 * 10) + (int32_t)(25 << 16);
+ 498              		.loc 1 694 0
+ 499 0006 9E4B     		ldr	r3, .L29
+ 500 0008 B3F90030 		ldrsh	r3, [r3]
+ 501 000c 1B04     		lsls	r3, r3, #16
+ 502 000e 9D4A     		ldr	r2, .L29+4
+ 503 0010 82FB0312 		smull	r1, r2, r2, r3
+ 504 0014 1A44     		add	r2, r2, r3
+ 505 0016 DB17     		asrs	r3, r3, #31
+ 506 0018 C3EBE223 		rsb	r3, r3, r2, asr #11
+ 507 001c 03EB8303 		add	r3, r3, r3, lsl #2
+ 508 0020 4FEA4309 		lsl	r9, r3, #1
+ 509 0024 09F5C819 		add	r9, r9, #1638400
+ 510              	.LVL39:
+ 695:Src/gyro.c    **** 	const int32_t temp_100degC = (temp_degC_q16 * 100) >> 16;
+ 511              		.loc 1 695 0
+ 512 0028 6423     		movs	r3, #100
+ 513 002a 03FB09F9 		mul	r9, r3, r9
+ 514              	.LVL40:
+ 515 002e 4FEA2949 		asr	r9, r9, #16
+ 516              	.LVL41:
+ 517              	.LBB4:
+ 696:Src/gyro.c    **** 
+ 697:Src/gyro.c    **** 	/*
+ 698:Src/gyro.c    **** 	 * Compute the calibrated accelerometer data
+ 699:Src/gyro.c    **** 	 */
+ 700:Src/gyro.c    **** 	{
+ 701:Src/gyro.c    **** 		const int32_t raw_accel_q25[3] = {
+ 702:Src/gyro.c    **** 			(sRacc_data[0] * ACC_SENSITIVITY) << (25 - 16),
+ 518              		.loc 1 702 0
+ 519 0032 954B     		ldr	r3, .L29+8
+ 520 0034 1A68     		ldr	r2, [r3]
+ 521              	.LVL42:
+ 522 0036 1203     		lsls	r2, r2, #12
+ 701:Src/gyro.c    **** 			(sRacc_data[0] * ACC_SENSITIVITY) << (25 - 16),
+ 523              		.loc 1 701 0
+ 524 0038 0792     		str	r2, [sp, #28]
+ 703:Src/gyro.c    **** 			(sRacc_data[1] * ACC_SENSITIVITY) << (25 - 16),
+ 525              		.loc 1 703 0
+ 526 003a 5A68     		ldr	r2, [r3, #4]
+ 527 003c 1203     		lsls	r2, r2, #12
+ 701:Src/gyro.c    **** 			(sRacc_data[0] * ACC_SENSITIVITY) << (25 - 16),
+ 528              		.loc 1 701 0
+ 529 003e 0892     		str	r2, [sp, #32]
+ 704:Src/gyro.c    **** 			(sRacc_data[2] * ACC_SENSITIVITY) << (25 - 16),
+ 530              		.loc 1 704 0
+ 531 0040 9B68     		ldr	r3, [r3, #8]
+ 532 0042 1B03     		lsls	r3, r3, #12
+ 701:Src/gyro.c    **** 			(sRacc_data[0] * ACC_SENSITIVITY) << (25 - 16),
+ 533              		.loc 1 701 0
+ 534 0044 0993     		str	r3, [sp, #36]
+ 705:Src/gyro.c    **** 		};
+ 706:Src/gyro.c    **** 		int32_t accel_bias_q25[3];
+ 707:Src/gyro.c    **** 		int32_t accel_cal_q25[3];
+ 708:Src/gyro.c    **** 
+ 709:Src/gyro.c    **** 		Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_UpdateAcc(sCalAcc.C_buffer.buf, raw_accel_q2
+ 535              		.loc 1 709 0
+ARM GAS  /tmp/ccDhQfGk.s 			page 23
+
+
+ 536 0046 914D     		ldr	r5, .L29+12
+ 537 0048 05F11C04 		add	r4, r5, #28
+ 538 004c 0AAB     		add	r3, sp, #40
+ 539 004e 4A46     		mov	r2, r9
+ 540 0050 07A9     		add	r1, sp, #28
+ 541 0052 2046     		mov	r0, r4
+ 542 0054 FFF7FEFF 		bl	Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_UpdateAcc
+ 543              	.LVL43:
+ 710:Src/gyro.c    **** 		accel_cal_q25[0] = raw_accel_q25[0] - accel_bias_q25[0];
+ 544              		.loc 1 710 0
+ 545 0058 0A9F     		ldr	r7, [sp, #40]
+ 546 005a 0799     		ldr	r1, [sp, #28]
+ 547 005c C91B     		subs	r1, r1, r7
+ 548 005e 0D91     		str	r1, [sp, #52]
+ 711:Src/gyro.c    **** 		accel_cal_q25[1] = raw_accel_q25[1] - accel_bias_q25[1];
+ 549              		.loc 1 711 0
+ 550 0060 0B9E     		ldr	r6, [sp, #44]
+ 551 0062 089A     		ldr	r2, [sp, #32]
+ 552 0064 921B     		subs	r2, r2, r6
+ 553 0066 0E92     		str	r2, [sp, #56]
+ 712:Src/gyro.c    **** 		accel_cal_q25[2] = raw_accel_q25[2] - accel_bias_q25[2];
+ 554              		.loc 1 712 0
+ 555 0068 0C98     		ldr	r0, [sp, #48]
+ 556 006a 099B     		ldr	r3, [sp, #36]
+ 557 006c 1B1A     		subs	r3, r3, r0
+ 558 006e 0F93     		str	r3, [sp, #60]
+ 713:Src/gyro.c    **** 
+ 714:Src/gyro.c    **** 		sCalAcc.acc_bias_q16[0] = accel_bias_q25[0] >> (25 - 16);
+ 559              		.loc 1 714 0
+ 560 0070 7F12     		asrs	r7, r7, #9
+ 561 0072 EF60     		str	r7, [r5, #12]
+ 715:Src/gyro.c    **** 		sCalAcc.acc_bias_q16[1] = accel_bias_q25[1] >> (25 - 16);
+ 562              		.loc 1 715 0
+ 563 0074 7612     		asrs	r6, r6, #9
+ 564 0076 2E61     		str	r6, [r5, #16]
+ 716:Src/gyro.c    **** 		sCalAcc.acc_bias_q16[2] = accel_bias_q25[2] >> (25 - 16);
+ 565              		.loc 1 716 0
+ 566 0078 4012     		asrs	r0, r0, #9
+ 567 007a 6861     		str	r0, [r5, #20]
+ 717:Src/gyro.c    **** 		sCalAcc.acc_cal_q16[0] = accel_cal_q25[0] >> (25 -16);
+ 568              		.loc 1 717 0
+ 569 007c 4912     		asrs	r1, r1, #9
+ 570 007e 2960     		str	r1, [r5]
+ 718:Src/gyro.c    **** 		sCalAcc.acc_cal_q16[1] = accel_cal_q25[1] >> (25 -16);
+ 571              		.loc 1 718 0
+ 572 0080 5212     		asrs	r2, r2, #9
+ 573 0082 6A60     		str	r2, [r5, #4]
+ 719:Src/gyro.c    **** 		sCalAcc.acc_cal_q16[2] = accel_cal_q25[2] >> (25 -16);
+ 574              		.loc 1 719 0
+ 575 0084 5B12     		asrs	r3, r3, #9
+ 576 0086 AB60     		str	r3, [r5, #8]
+ 720:Src/gyro.c    **** 		sCalAcc.accuracy_flag = Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_GetAccuracy(sCalAcc.
+ 577              		.loc 1 720 0
+ 578 0088 2046     		mov	r0, r4
+ 579 008a FFF7FEFF 		bl	Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_GetAccuracy
+ 580              	.LVL44:
+ 581 008e 0246     		mov	r2, r0
+ARM GAS  /tmp/ccDhQfGk.s 			page 24
+
+
+ 582 0090 2876     		strb	r0, [r5, #24]
+ 721:Src/gyro.c    **** 
+ 722:Src/gyro.c    **** 		/* Update GRV algorithm with acc value and acc accuracy */
+ 723:Src/gyro.c    **** 		Algo_InvnOrientation_BodyToWorldFrameFxp_UpdateAcc(sGRV.C_buffer.buf,
+ 583              		.loc 1 723 0
+ 584 0092 7F4C     		ldr	r4, .L29+16
+ 585 0094 04F12807 		add	r7, r4, #40
+ 586 0098 0DA9     		add	r1, sp, #52
+ 587 009a 3846     		mov	r0, r7
+ 588 009c FFF7FEFF 		bl	Algo_InvnOrientation_BodyToWorldFrameFxp_UpdateAcc
+ 589              	.LVL45:
+ 590              	.LBE4:
+ 591              	.LBB5:
+ 724:Src/gyro.c    **** 				accel_cal_q25, sCalAcc.accuracy_flag);
+ 725:Src/gyro.c    **** 	}
+ 726:Src/gyro.c    **** 
+ 727:Src/gyro.c    **** 	/*
+ 728:Src/gyro.c    **** 	 * Compute the calibrated gyroscope data
+ 729:Src/gyro.c    **** 	 */
+ 730:Src/gyro.c    **** 	{
+ 731:Src/gyro.c    **** 		const int32_t raw_gyr_2000dps_q15[3] = {
+ 732:Src/gyro.c    **** 			(sRgyro_data[0] * GYR_SENSITIVITY) / (2*2000),
+ 592              		.loc 1 732 0
+ 593 00a0 7C48     		ldr	r0, .L29+20
+ 594 00a2 0268     		ldr	r2, [r0]
+ 595 00a4 4FF47A63 		mov	r3, #4000
+ 596 00a8 03FB02F2 		mul	r2, r3, r2
+ 597 00ac 7A49     		ldr	r1, .L29+24
+ 598 00ae 81FB02C6 		smull	ip, r6, r1, r2
+ 599 00b2 D217     		asrs	r2, r2, #31
+ 600 00b4 C2EB2622 		rsb	r2, r2, r6, asr #8
+ 731:Src/gyro.c    **** 			(sRgyro_data[0] * GYR_SENSITIVITY) / (2*2000),
+ 601              		.loc 1 731 0
+ 602 00b8 0792     		str	r2, [sp, #28]
+ 733:Src/gyro.c    **** 			(sRgyro_data[1] * GYR_SENSITIVITY) / (2*2000),
+ 603              		.loc 1 733 0
+ 604 00ba 4268     		ldr	r2, [r0, #4]
+ 605 00bc 03FB02F2 		mul	r2, r3, r2
+ 606 00c0 81FB02C6 		smull	ip, r6, r1, r2
+ 607 00c4 D217     		asrs	r2, r2, #31
+ 608 00c6 C2EB2622 		rsb	r2, r2, r6, asr #8
+ 731:Src/gyro.c    **** 			(sRgyro_data[0] * GYR_SENSITIVITY) / (2*2000),
+ 609              		.loc 1 731 0
+ 610 00ca 0892     		str	r2, [sp, #32]
+ 734:Src/gyro.c    **** 			(sRgyro_data[2] * GYR_SENSITIVITY) / (2*2000)
+ 611              		.loc 1 734 0
+ 612 00cc 8268     		ldr	r2, [r0, #8]
+ 613 00ce 03FB02F3 		mul	r3, r3, r2
+ 614 00d2 81FB0321 		smull	r2, r1, r1, r3
+ 615 00d6 DB17     		asrs	r3, r3, #31
+ 616 00d8 C3EB2123 		rsb	r3, r3, r1, asr #8
+ 731:Src/gyro.c    **** 			(sRgyro_data[0] * GYR_SENSITIVITY) / (2*2000),
+ 617              		.loc 1 731 0
+ 618 00dc 0993     		str	r3, [sp, #36]
+ 735:Src/gyro.c    **** 		};
+ 736:Src/gyro.c    **** 		int32_t gyro_uncal_2000dps_q30[3];
+ 737:Src/gyro.c    **** 		int32_t gyro_offset_2000dps_q30[3];
+ARM GAS  /tmp/ccDhQfGk.s 			page 25
+
+
+ 738:Src/gyro.c    **** 
+ 739:Src/gyro.c    **** 		Algo_InvnCalibration_GyroCalibrationFxp_UpdateGyr(sCalGyr.C_buffer.buf, raw_gyr_2000dps_q15, temp
+ 619              		.loc 1 739 0
+ 620 00de 6F4E     		ldr	r6, .L29+28
+ 621 00e0 06F13408 		add	r8, r6, #52
+ 622 00e4 4A46     		mov	r2, r9
+ 623 00e6 07A9     		add	r1, sp, #28
+ 624 00e8 4046     		mov	r0, r8
+ 625 00ea FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_UpdateGyr
+ 626              	.LVL46:
+ 740:Src/gyro.c    **** 		Algo_InvnCalibration_GyroCalibrationFxp_GetUncalibrated(sCalGyr.C_buffer.buf, gyro_uncal_2000dps_
+ 627              		.loc 1 740 0
+ 628 00ee 0AA9     		add	r1, sp, #40
+ 629 00f0 4046     		mov	r0, r8
+ 630 00f2 FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_GetUncalibrated
+ 631              	.LVL47:
+ 741:Src/gyro.c    **** 		Algo_InvnCalibration_GyroCalibrationFxp_GetBias(sCalGyr.C_buffer.buf, gyro_offset_2000dps_q30);
+ 632              		.loc 1 741 0
+ 633 00f6 0DA9     		add	r1, sp, #52
+ 634 00f8 4046     		mov	r0, r8
+ 635 00fa FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_GetBias
+ 636              	.LVL48:
+ 742:Src/gyro.c    **** 		Algo_InvnCalibration_GyroCalibrationFxp_GetCalibrated(sCalGyr.C_buffer.buf, sCalGyr.gyro_cal_2000
+ 637              		.loc 1 742 0
+ 638 00fe 3146     		mov	r1, r6
+ 639 0100 4046     		mov	r0, r8
+ 640 0102 FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_GetCalibrated
+ 641              	.LVL49:
+ 743:Src/gyro.c    **** 
+ 744:Src/gyro.c    **** 		sCalGyr.gyr_uncal_q16[0] = ((gyro_uncal_2000dps_q30[0] >> 11) * 2000) >> (30 - 11 - 16);
+ 642              		.loc 1 744 0
+ 643 0106 0A9B     		ldr	r3, [sp, #40]
+ 644 0108 DA12     		asrs	r2, r3, #11
+ 645 010a 4FF4FA63 		mov	r3, #2000
+ 646 010e 03FB02F2 		mul	r2, r3, r2
+ 647 0112 D210     		asrs	r2, r2, #3
+ 648 0114 B261     		str	r2, [r6, #24]
+ 745:Src/gyro.c    **** 		sCalGyr.gyr_uncal_q16[1] = ((gyro_uncal_2000dps_q30[1] >> 11) * 2000) >> (30 - 11 - 16);
+ 649              		.loc 1 745 0
+ 650 0116 0B9A     		ldr	r2, [sp, #44]
+ 651 0118 D212     		asrs	r2, r2, #11
+ 652 011a 03FB02F2 		mul	r2, r3, r2
+ 653 011e D210     		asrs	r2, r2, #3
+ 654 0120 F261     		str	r2, [r6, #28]
+ 746:Src/gyro.c    **** 		sCalGyr.gyr_uncal_q16[2] = ((gyro_uncal_2000dps_q30[2] >> 11) * 2000) >> (30 - 11 - 16);
+ 655              		.loc 1 746 0
+ 656 0122 0C9A     		ldr	r2, [sp, #48]
+ 657 0124 D212     		asrs	r2, r2, #11
+ 658 0126 03FB02F2 		mul	r2, r3, r2
+ 659 012a D210     		asrs	r2, r2, #3
+ 660 012c 3262     		str	r2, [r6, #32]
+ 747:Src/gyro.c    **** 		sCalGyr.gyr_bias_q16[0] = ((gyro_offset_2000dps_q30[0] >> 11) * 2000) >> (30 - 11 - 16);
+ 661              		.loc 1 747 0
+ 662 012e 0D9A     		ldr	r2, [sp, #52]
+ 663 0130 D212     		asrs	r2, r2, #11
+ 664 0132 03FB02F2 		mul	r2, r3, r2
+ 665 0136 D210     		asrs	r2, r2, #3
+ARM GAS  /tmp/ccDhQfGk.s 			page 26
+
+
+ 666 0138 7262     		str	r2, [r6, #36]
+ 748:Src/gyro.c    **** 		sCalGyr.gyr_bias_q16[1] = ((gyro_offset_2000dps_q30[1] >> 11) * 2000) >> (30 - 11 - 16);
+ 667              		.loc 1 748 0
+ 668 013a 0E9A     		ldr	r2, [sp, #56]
+ 669 013c D212     		asrs	r2, r2, #11
+ 670 013e 03FB02F2 		mul	r2, r3, r2
+ 671 0142 D210     		asrs	r2, r2, #3
+ 672 0144 B262     		str	r2, [r6, #40]
+ 749:Src/gyro.c    **** 		sCalGyr.gyr_bias_q16[2] = ((gyro_offset_2000dps_q30[2] >> 11) * 2000) >> (30 - 11 - 16);
+ 673              		.loc 1 749 0
+ 674 0146 0F9A     		ldr	r2, [sp, #60]
+ 675 0148 D212     		asrs	r2, r2, #11
+ 676 014a 03FB02F2 		mul	r2, r3, r2
+ 677 014e D210     		asrs	r2, r2, #3
+ 678 0150 F262     		str	r2, [r6, #44]
+ 750:Src/gyro.c    **** 		sCalGyr.gyr_cal_q16[0] = ((sCalGyr.gyro_cal_2000dps_q30[0] >> 11) * 2000) >> (30 - 11 - 16);
+ 679              		.loc 1 750 0
+ 680 0152 3268     		ldr	r2, [r6]
+ 681 0154 D212     		asrs	r2, r2, #11
+ 682 0156 03FB02F2 		mul	r2, r3, r2
+ 683 015a D210     		asrs	r2, r2, #3
+ 684 015c F260     		str	r2, [r6, #12]
+ 751:Src/gyro.c    **** 		sCalGyr.gyr_cal_q16[1] = ((sCalGyr.gyro_cal_2000dps_q30[1] >> 11) * 2000) >> (30 - 11 - 16);
+ 685              		.loc 1 751 0
+ 686 015e 7268     		ldr	r2, [r6, #4]
+ 687 0160 D212     		asrs	r2, r2, #11
+ 688 0162 03FB02F2 		mul	r2, r3, r2
+ 689 0166 D210     		asrs	r2, r2, #3
+ 690 0168 3261     		str	r2, [r6, #16]
+ 752:Src/gyro.c    **** 		sCalGyr.gyr_cal_q16[2] = ((sCalGyr.gyro_cal_2000dps_q30[2] >> 11) * 2000) >> (30 - 11 - 16);
+ 691              		.loc 1 752 0
+ 692 016a B268     		ldr	r2, [r6, #8]
+ 693 016c D212     		asrs	r2, r2, #11
+ 694 016e 03FB02F3 		mul	r3, r3, r2
+ 695 0172 DB10     		asrs	r3, r3, #3
+ 696 0174 7361     		str	r3, [r6, #20]
+ 753:Src/gyro.c    **** 		sCalGyr.accuracy_flag = Algo_InvnCalibration_GyroCalibrationFxp_GetAccuracy(sCalGyr.C_buffer.buf)
+ 697              		.loc 1 753 0
+ 698 0176 4046     		mov	r0, r8
+ 699 0178 FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_GetAccuracy
+ 700              	.LVL50:
+ 701 017c 0246     		mov	r2, r0
+ 702 017e 86F83000 		strb	r0, [r6, #48]
+ 754:Src/gyro.c    **** 
+ 755:Src/gyro.c    **** 		/* Update GRV with gyr value and gyr accuracy */
+ 756:Src/gyro.c    **** 		Algo_InvnOrientation_BodyToWorldFrameFxp_UpdateGyr(sGRV.C_buffer.buf,
+ 703              		.loc 1 756 0
+ 704 0182 3146     		mov	r1, r6
+ 705 0184 3846     		mov	r0, r7
+ 706 0186 FFF7FEFF 		bl	Algo_InvnOrientation_BodyToWorldFrameFxp_UpdateGyr
+ 707              	.LVL51:
+ 708              	.LBE5:
+ 757:Src/gyro.c    **** 				sCalGyr.gyro_cal_2000dps_q30, sCalGyr.accuracy_flag);
+ 758:Src/gyro.c    **** 	}
+ 759:Src/gyro.c    **** 
+ 760:Src/gyro.c    **** 	/*
+ 761:Src/gyro.c    **** 	 * Compute the game rotation vector data
+ARM GAS  /tmp/ccDhQfGk.s 			page 27
+
+
+ 762:Src/gyro.c    **** 	 * Note : the orientation may drift until the GRV accuracy flag reaches 3. Once calibrated, the po
+ 763:Src/gyro.c    **** 	 */
+ 764:Src/gyro.c    **** 	{
+ 765:Src/gyro.c    **** 		Algo_InvnOrientation_BodyToWorldFrameFxp_GetGameRotationVector(sGRV.C_buffer.buf, sGRV.grv_quat_q
+ 709              		.loc 1 765 0
+ 710 018a 2146     		mov	r1, r4
+ 711 018c 3846     		mov	r0, r7
+ 712 018e FFF7FEFF 		bl	Algo_InvnOrientation_BodyToWorldFrameFxp_GetGameRotationVector
+ 713              	.LVL52:
+ 766:Src/gyro.c    **** 	}
+ 767:Src/gyro.c    **** 
+ 768:Src/gyro.c    **** 	/*
+ 769:Src/gyro.c    **** 	 * Compute the gravity data
+ 770:Src/gyro.c    **** 	 */
+ 771:Src/gyro.c    **** 	{
+ 772:Src/gyro.c    **** 		/* x axis */
+ 773:Src/gyro.c    **** 		sGRV.gravity_q16[0] = (2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[1] * sGRV.grv_quat_q30[3]) >> 30
+ 714              		.loc 1 773 0
+ 715 0192 D4F804C0 		ldr	ip, [r4, #4]
+ 716 0196 6246     		mov	r2, ip
+ 717 0198 D317     		asrs	r3, r2, #31
+ 718 019a CDE90023 		strd	r2, [sp]
+ 719 019e D4F80CE0 		ldr	lr, [r4, #12]
+ 720 01a2 7246     		mov	r2, lr
+ 721 01a4 D317     		asrs	r3, r2, #31
+ 722 01a6 CDE90423 		strd	r2, [sp, #16]
+ 723 01aa 0CFB03F1 		mul	r1, ip, r3
+ 724 01ae 019B     		ldr	r3, [sp, #4]
+ 725 01b0 0EFB0311 		mla	r1, lr, r3, r1
+ 726 01b4 ACFB0E23 		umull	r2, r3, ip, lr
+ 727 01b8 0B44     		add	r3, r3, r1
+ 728 01ba 4FEA9278 		lsr	r8, r2, #30
+ 729 01be 48EA8308 		orr	r8, r8, r3, lsl #2
+ 774:Src/gyro.c    **** 				- 2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[0] * sGRV.grv_quat_q30[2]) >> 30)) >> (30 - 16);
+ 730              		.loc 1 774 0
+ 731 01c2 D4F800A0 		ldr	r10, [r4]
+ 732 01c6 5246     		mov	r2, r10
+ 733 01c8 D317     		asrs	r3, r2, #31
+ 734 01ca A168     		ldr	r1, [r4, #8]
+ 735 01cc 0E46     		mov	r6, r1
+ 736 01ce CF17     		asrs	r7, r1, #31
+ 737 01d0 CDE90267 		strd	r6, [sp, #8]
+ 738 01d4 0AFB07F0 		mul	r0, r10, r7
+ 739 01d8 1F46     		mov	r7, r3
+ 740 01da 01FB0300 		mla	r0, r1, r3, r0
+ 741 01de AAFB0123 		umull	r2, r3, r10, r1
+ 742 01e2 0344     		add	r3, r3, r0
+ 743 01e4 900F     		lsrs	r0, r2, #30
+ 744 01e6 40EA8300 		orr	r0, r0, r3, lsl #2
+ 745 01ea A8EB0008 		sub	r8, r8, r0
+ 746 01ee 48F35130 		sbfx	r0, r8, #13, #18
+ 773:Src/gyro.c    **** 				- 2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[0] * sGRV.grv_quat_q30[2]) >> 30)) >> (30 - 16);
+ 747              		.loc 1 773 0
+ 748 01f2 2061     		str	r0, [r4, #16]
+ 775:Src/gyro.c    **** 		/* y axis */
+ 776:Src/gyro.c    **** 		sGRV.gravity_q16[1] = (2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[2] * sGRV.grv_quat_q30[3]) >> 30
+ 749              		.loc 1 776 0
+ARM GAS  /tmp/ccDhQfGk.s 			page 28
+
+
+ 750 01f4 039B     		ldr	r3, [sp, #12]
+ 751 01f6 0EFB03F3 		mul	r3, lr, r3
+ 752 01fa 059A     		ldr	r2, [sp, #20]
+ 753 01fc 9046     		mov	r8, r2
+ 754 01fe 01FB0833 		mla	r3, r1, r8, r3
+ 755 0202 AEFB0189 		umull	r8, r9, lr, r1
+ 756 0206 9944     		add	r9, r9, r3
+ 757              	.LVL53:
+ 758 0208 4FEA987E 		lsr	lr, r8, #30
+ 759 020c 4EEA890E 		orr	lr, lr, r9, lsl #2
+ 777:Src/gyro.c    **** 				+ 2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[0] * sGRV.grv_quat_q30[1]) >> 30)) >> (30 - 16);
+ 760              		.loc 1 777 0
+ 761 0210 0CFB07F8 		mul	r8, ip, r7
+ 762 0214 019B     		ldr	r3, [sp, #4]
+ 763 0216 0AFB0388 		mla	r8, r10, r3, r8
+ 764 021a ACFB0AAB 		umull	r10, fp, ip, r10
+ 765 021e C344     		add	fp, fp, r8
+ 766 0220 4FEA9A72 		lsr	r2, r10, #30
+ 767 0224 42EA8B02 		orr	r2, r2, fp, lsl #2
+ 768 0228 9644     		add	lr, lr, r2
+ 769 022a 4EF35132 		sbfx	r2, lr, #13, #18
+ 776:Src/gyro.c    **** 				+ 2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[0] * sGRV.grv_quat_q30[1]) >> 30)) >> (30 - 16);
+ 770              		.loc 1 776 0
+ 771 022e 6261     		str	r2, [r4, #20]
+ 778:Src/gyro.c    **** 		/* z axis */
+ 779:Src/gyro.c    **** 		sGRV.gravity_q16[2] = ((1 << 30) - 2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[1] * sGRV.grv_quat_q
+ 772              		.loc 1 779 0
+ 773 0230 0CFB03F3 		mul	r3, ip, r3
+ 774 0234 ACFB0C89 		umull	r8, r9, ip, ip
+ 775 0238 09EB4309 		add	r9, r9, r3, lsl #1
+ 776 023c 4FEA9873 		lsr	r3, r8, #30
+ 777 0240 43EA8903 		orr	r3, r3, r9, lsl #2
+ 778 0244 C3F10053 		rsb	r3, r3, #536870912
+ 780:Src/gyro.c    **** 				- 2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[2] * sGRV.grv_quat_q30[2]) >> 30)) >> (30 - 16);
+ 779              		.loc 1 780 0
+ 780 0248 039F     		ldr	r7, [sp, #12]
+ 781 024a 0E46     		mov	r6, r1
+ 782 024c 01FB07F7 		mul	r7, r1, r7
+ 783 0250 3946     		mov	r1, r7
+ 784 0252 A6FB0667 		umull	r6, r7, r6, r6
+ 785 0256 07EB4107 		add	r7, r7, r1, lsl #1
+ 786 025a B10F     		lsrs	r1, r6, #30
+ 787 025c 41EA8701 		orr	r1, r1, r7, lsl #2
+ 788 0260 5B1A     		subs	r3, r3, r1
+ 789 0262 43F35133 		sbfx	r3, r3, #13, #18
+ 779:Src/gyro.c    **** 				- 2 * (int32_t)(((int64_t)sGRV.grv_quat_q30[2] * sGRV.grv_quat_q30[2]) >> 30)) >> (30 - 16);
+ 790              		.loc 1 779 0
+ 791 0266 A361     		str	r3, [r4, #24]
+ 781:Src/gyro.c    **** 	}
+ 782:Src/gyro.c    **** 
+ 783:Src/gyro.c    **** 	/*
+ 784:Src/gyro.c    **** 	 * Compute the linear acceleration data
+ 785:Src/gyro.c    **** 	 */
+ 786:Src/gyro.c    **** 	{
+ 787:Src/gyro.c    **** 		sGRV.linearacc_q16[0] = sCalAcc.acc_cal_q16[0] - sGRV.gravity_q16[0];
+ 792              		.loc 1 787 0
+ 793 0268 2968     		ldr	r1, [r5]
+ARM GAS  /tmp/ccDhQfGk.s 			page 29
+
+
+ 794 026a 081A     		subs	r0, r1, r0
+ 795 026c E061     		str	r0, [r4, #28]
+ 788:Src/gyro.c    **** 		sGRV.linearacc_q16[1] = sCalAcc.acc_cal_q16[1] - sGRV.gravity_q16[1];
+ 796              		.loc 1 788 0
+ 797 026e 6968     		ldr	r1, [r5, #4]
+ 798 0270 8A1A     		subs	r2, r1, r2
+ 799 0272 2262     		str	r2, [r4, #32]
+ 789:Src/gyro.c    **** 		sGRV.linearacc_q16[2] = sCalAcc.acc_cal_q16[2] - sGRV.gravity_q16[2];
+ 800              		.loc 1 789 0
+ 801 0274 AA68     		ldr	r2, [r5, #8]
+ 802 0276 D31A     		subs	r3, r2, r3
+ 803 0278 6362     		str	r3, [r4, #36]
+ 790:Src/gyro.c    **** 	}
+ 791:Src/gyro.c    **** }
+ 804              		.loc 1 791 0
+ 805 027a 11B0     		add	sp, sp, #68
+ 806              	.LCFI14:
+ 807              		.cfi_def_cfa_offset 36
+ 808              		@ sp needed
+ 809 027c BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 810              	.L30:
+ 811              		.align	2
+ 812              	.L29:
+ 813 0280 00000000 		.word	.LANCHOR5
+ 814 0284 D54B6EA0 		.word	-1603384363
+ 815 0288 00000000 		.word	.LANCHOR6
+ 816 028c 00000000 		.word	.LANCHOR3
+ 817 0290 00000000 		.word	.LANCHOR4
+ 818 0294 00000000 		.word	.LANCHOR7
+ 819 0298 D34D6210 		.word	274877907
+ 820 029c 00000000 		.word	.LANCHOR1
+ 821              		.cfi_endproc
+ 822              	.LFE165:
+ 824              		.section	.text.doupdategyro,"ax",%progbits
+ 825              		.align	1
+ 826              		.global	doupdategyro
+ 827              		.syntax unified
+ 828              		.thumb
+ 829              		.thumb_func
+ 830              		.fpu fpv4-sp-d16
+ 832              	doupdategyro:
+ 833              	.LFB149:
+ 161:Src/gyro.c    **** 	if(irq_from_device & 1) {
+ 834              		.loc 1 161 0
+ 835              		.cfi_startproc
+ 836              		@ args = 0, pretend = 0, frame = 32
+ 837              		@ frame_needed = 0, uses_anonymous_args = 0
+ 162:Src/gyro.c    **** 		int rc = 0;
+ 838              		.loc 1 162 0
+ 839 0000 2E4B     		ldr	r3, .L47
+ 840 0002 1B68     		ldr	r3, [r3]
+ 841 0004 13F0010F 		tst	r3, #1
+ 842 0008 00D1     		bne	.L44
+ 843 000a 7047     		bx	lr
+ 844              	.L44:
+ 161:Src/gyro.c    **** 	if(irq_from_device & 1) {
+ 845              		.loc 1 161 0
+ARM GAS  /tmp/ccDhQfGk.s 			page 30
+
+
+ 846 000c 10B5     		push	{r4, lr}
+ 847              	.LCFI15:
+ 848              		.cfi_def_cfa_offset 8
+ 849              		.cfi_offset 4, -8
+ 850              		.cfi_offset 14, -4
+ 851 000e 8AB0     		sub	sp, sp, #40
+ 852              	.LCFI16:
+ 853              		.cfi_def_cfa_offset 48
+ 854              	.LVL54:
+ 855              	.LBB6:
+ 171:Src/gyro.c    **** 			ddry = inv_icm207xx_check_drdy(&icm_device, int_status);
+ 856              		.loc 1 171 0
+ 857 0010 0DF10B01 		add	r1, sp, #11
+ 858 0014 2A48     		ldr	r0, .L47+4
+ 859 0016 FFF7FEFF 		bl	inv_icm207xx_get_int_status
+ 860              	.LVL55:
+ 861 001a 30B1     		cbz	r0, .L45
+ 862              	.LVL56:
+ 863              	.L33:
+ 224:Src/gyro.c    **** 	}
+ 864              		.loc 1 224 0 discriminator 1
+ 865 001c 274A     		ldr	r2, .L47
+ 866 001e 1368     		ldr	r3, [r2]
+ 867 0020 23F00103 		bic	r3, r3, #1
+ 868 0024 1360     		str	r3, [r2]
+ 869              	.LBE6:
+ 226:Src/gyro.c    **** 
+ 870              		.loc 1 226 0 discriminator 1
+ 871 0026 0AB0     		add	sp, sp, #40
+ 872              	.LCFI17:
+ 873              		.cfi_remember_state
+ 874              		.cfi_def_cfa_offset 8
+ 875              		@ sp needed
+ 876 0028 10BD     		pop	{r4, pc}
+ 877              	.LVL57:
+ 878              	.L45:
+ 879              	.LCFI18:
+ 880              		.cfi_restore_state
+ 881              	.LBB10:
+ 172:Src/gyro.c    **** 
+ 882              		.loc 1 172 0
+ 883 002a 9DF80B10 		ldrb	r1, [sp, #11]	@ zero_extendqisi2
+ 884 002e 2448     		ldr	r0, .L47+4
+ 885              	.LVL58:
+ 886 0030 FFF7FEFF 		bl	inv_icm207xx_check_drdy
+ 887              	.LVL59:
+ 888 0034 C0B2     		uxtb	r0, r0
+ 889              	.LVL60:
+ 174:Src/gyro.c    **** 			struct inv_icm207xx_fifo_states fifo_states;
+ 890              		.loc 1 174 0
+ 891 0036 0028     		cmp	r0, #0
+ 892 0038 F0D0     		beq	.L33
+ 893              	.LBB7:
+ 177:Src/gyro.c    **** 			check_rc(rc, "Error while polling the icm207xx device");
+ 894              		.loc 1 177 0
+ 895 003a 9DF80B20 		ldrb	r2, [sp, #11]	@ zero_extendqisi2
+ 896 003e 07A9     		add	r1, sp, #28
+ARM GAS  /tmp/ccDhQfGk.s 			page 31
+
+
+ 897 0040 1F48     		ldr	r0, .L47+4
+ 898              	.LVL61:
+ 899 0042 FFF7FEFF 		bl	inv_icm207xx_poll_fifo_data_setup
+ 900              	.LVL62:
+ 901 0046 0446     		mov	r4, r0
+ 902              	.LVL63:
+ 178:Src/gyro.c    **** 			if(rc == 1) {
+ 903              		.loc 1 178 0
+ 904 0048 1E49     		ldr	r1, .L47+8
+ 905 004a FFF7FEFF 		bl	check_rc
+ 906              	.LVL64:
+ 179:Src/gyro.c    **** 				/*
+ 907              		.loc 1 179 0
+ 908 004e 012C     		cmp	r4, #1
+ 909 0050 07D0     		beq	.L46
+ 187:Src/gyro.c    **** 				/*
+ 910              		.loc 1 187 0
+ 911 0052 BDF82230 		ldrh	r3, [sp, #34]
+ 912 0056 002B     		cmp	r3, #0
+ 913 0058 E0D0     		beq	.L33
+ 187:Src/gyro.c    **** 				/*
+ 914              		.loc 1 187 0 is_stmt 0 discriminator 1
+ 915 005a BDF82430 		ldrh	r3, [sp, #36]
+ 916 005e EBB9     		cbnz	r3, .L36
+ 917 0060 DCE7     		b	.L33
+ 918              	.L46:
+ 184:Src/gyro.c    **** 				timer_clear_irq_timestamp();
+ 919              		.loc 1 184 0 is_stmt 1
+ 920 0062 1748     		ldr	r0, .L47+4
+ 921 0064 FFF7FEFF 		bl	inv_icm207xx_reset_fifo
+ 922              	.LVL65:
+ 185:Src/gyro.c    **** 			}
+ 923              		.loc 1 185 0
+ 924 0068 FFF7FEFF 		bl	timer_clear_irq_timestamp
+ 925              	.LVL66:
+ 926 006c D6E7     		b	.L33
+ 927              	.LVL67:
+ 928              	.L38:
+ 929              	.LBB8:
+ 202:Src/gyro.c    **** 						timestamp_to_drop--;
+ 930              		.loc 1 202 0
+ 931 006e FFF7FEFF 		bl	timer_get_irq_timestamp
+ 932              	.LVL68:
+ 203:Src/gyro.c    **** 					}
+ 933              		.loc 1 203 0
+ 934 0072 154A     		ldr	r2, .L47+12
+ 935 0074 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 936 0076 013B     		subs	r3, r3, #1
+ 937 0078 1370     		strb	r3, [r2]
+ 938              	.L37:
+ 201:Src/gyro.c    **** 						timestamp = timer_get_irq_timestamp();
+ 939              		.loc 1 201 0
+ 940 007a 134B     		ldr	r3, .L47+12
+ 941 007c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 942 007e 002B     		cmp	r3, #0
+ 943 0080 F5D1     		bne	.L38
+ 209:Src/gyro.c    **** 					apply_mouting_matrix(cfg_mounting_matrix, raw_gyro, sRgyro_data);
+ARM GAS  /tmp/ccDhQfGk.s 			page 32
+
+
+ 944              		.loc 1 209 0
+ 945 0082 124C     		ldr	r4, .L47+16
+ 946 0084 124A     		ldr	r2, .L47+20
+ 947 0086 03A9     		add	r1, sp, #12
+ 948 0088 2046     		mov	r0, r4
+ 949 008a FFF7FEFF 		bl	apply_mouting_matrix
+ 950              	.LVL69:
+ 210:Src/gyro.c    **** 
+ 951              		.loc 1 210 0
+ 952 008e 114A     		ldr	r2, .L47+24
+ 953 0090 05A9     		add	r1, sp, #20
+ 954 0092 2046     		mov	r0, r4
+ 955 0094 FFF7FEFF 		bl	apply_mouting_matrix
+ 956              	.LVL70:
+ 215:Src/gyro.c    **** 
+ 957              		.loc 1 215 0
+ 958 0098 FFF7FEFF 		bl	algorithms_process
+ 959              	.LVL71:
+ 960              	.L36:
+ 961              	.LBE8:
+ 191:Src/gyro.c    **** 
+ 962              		.loc 1 191 0
+ 963 009c 0023     		movs	r3, #0
+ 964 009e 0193     		str	r3, [sp, #4]
+ 965 00a0 05AB     		add	r3, sp, #20
+ 966 00a2 0093     		str	r3, [sp]
+ 967 00a4 0C4B     		ldr	r3, .L47+28
+ 968 00a6 03AA     		add	r2, sp, #12
+ 969 00a8 07A9     		add	r1, sp, #28
+ 970 00aa 0548     		ldr	r0, .L47+4
+ 971 00ac FFF7FEFF 		bl	inv_icm207xx_poll_fifo_data
+ 972              	.LVL72:
+ 973 00b0 0028     		cmp	r0, #0
+ 974 00b2 B3DD     		ble	.L33
+ 975              	.LBB9:
+ 193:Src/gyro.c    **** 
+ 976              		.loc 1 193 0
+ 977 00b4 FFF7FEFF 		bl	timer_get_irq_timestamp
+ 978              	.LVL73:
+ 201:Src/gyro.c    **** 						timestamp = timer_get_irq_timestamp();
+ 979              		.loc 1 201 0
+ 980 00b8 DFE7     		b	.L37
+ 981              	.L48:
+ 982 00ba 00BF     		.align	2
+ 983              	.L47:
+ 984 00bc 00000000 		.word	.LANCHOR0
+ 985 00c0 00000000 		.word	.LANCHOR8
+ 986 00c4 00000000 		.word	.LC0
+ 987 00c8 00000000 		.word	.LANCHOR9
+ 988 00cc 00000000 		.word	.LANCHOR10
+ 989 00d0 00000000 		.word	.LANCHOR6
+ 990 00d4 00000000 		.word	.LANCHOR7
+ 991 00d8 00000000 		.word	.LANCHOR5
+ 992              	.LBE9:
+ 993              	.LBE7:
+ 994              	.LBE10:
+ 995              		.cfi_endproc
+ARM GAS  /tmp/ccDhQfGk.s 			page 33
+
+
+ 996              	.LFE149:
+ 998              		.section	.text.icm207xx_sensor_setup,"ax",%progbits
+ 999              		.align	1
+ 1000              		.global	icm207xx_sensor_setup
+ 1001              		.syntax unified
+ 1002              		.thumb
+ 1003              		.thumb_func
+ 1004              		.fpu fpv4-sp-d16
+ 1006              	icm207xx_sensor_setup:
+ 1007              	.LFB154:
+ 262:Src/gyro.c    **** 	int rc;
+ 1008              		.loc 1 262 0
+ 1009              		.cfi_startproc
+ 1010              		@ args = 0, pretend = 0, frame = 8
+ 1011              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1012 0000 30B5     		push	{r4, r5, lr}
+ 1013              	.LCFI19:
+ 1014              		.cfi_def_cfa_offset 12
+ 1015              		.cfi_offset 4, -12
+ 1016              		.cfi_offset 5, -8
+ 1017              		.cfi_offset 14, -4
+ 1018 0002 83B0     		sub	sp, sp, #12
+ 1019              	.LCFI20:
+ 1020              		.cfi_def_cfa_offset 24
+ 264:Src/gyro.c    **** 	/*
+ 1021              		.loc 1 264 0
+ 1022 0004 02A9     		add	r1, sp, #8
+ 1023 0006 FF23     		movs	r3, #255
+ 1024 0008 01F8013D 		strb	r3, [r1, #-1]!
+ 268:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "ICM20689 WHOAMI=0x%02x", whoami);
+ 1025              		.loc 1 268 0
+ 1026 000c 2648     		ldr	r0, .L58
+ 1027 000e FFF7FEFF 		bl	inv_icm207xx_get_whoami
+ 1028              	.LVL74:
+ 270:Src/gyro.c    **** 	/*
+ 1029              		.loc 1 270 0
+ 1030 0012 2649     		ldr	r1, .L58+4
+ 1031 0014 FFF7FEFF 		bl	check_rc
+ 1032              	.LVL75:
+ 274:Src/gyro.c    **** 		if(whoami == EXPECTED_WHOAMI[i])
+ 1033              		.loc 1 274 0
+ 1034 0018 0023     		movs	r3, #0
+ 1035              	.LVL76:
+ 1036              	.L50:
+ 274:Src/gyro.c    **** 		if(whoami == EXPECTED_WHOAMI[i])
+ 1037              		.loc 1 274 0 is_stmt 0 discriminator 1
+ 1038 001a 032B     		cmp	r3, #3
+ 1039 001c 08D8     		bhi	.L51
+ 275:Src/gyro.c    **** 			break;
+ 1040              		.loc 1 275 0 is_stmt 1
+ 1041 001e 244A     		ldr	r2, .L58+8
+ 1042 0020 D15C     		ldrb	r1, [r2, r3]	@ zero_extendqisi2
+ 1043 0022 9DF80720 		ldrb	r2, [sp, #7]	@ zero_extendqisi2
+ 1044 0026 9142     		cmp	r1, r2
+ 1045 0028 02D0     		beq	.L51
+ 274:Src/gyro.c    **** 		if(whoami == EXPECTED_WHOAMI[i])
+ 1046              		.loc 1 274 0 discriminator 2
+ARM GAS  /tmp/ccDhQfGk.s 			page 34
+
+
+ 1047 002a 0133     		adds	r3, r3, #1
+ 1048              	.LVL77:
+ 1049 002c DBB2     		uxtb	r3, r3
+ 1050              	.LVL78:
+ 1051 002e F4E7     		b	.L50
+ 1052              	.L51:
+ 279:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_ERROR, "Bad WHOAMI value. Got 0x%02x. Expected 0x95, 0x02, 0x03.", whoami);
+ 1053              		.loc 1 279 0
+ 1054 0030 042B     		cmp	r3, #4
+ 1055 0032 25D0     		beq	.L56
+ 1056              	.LVL79:
+ 1057              	.L53:
+ 284:Src/gyro.c    **** 	check_rc(rc, "Could not obtain chip info");
+ 1058              		.loc 1 284 0
+ 1059 0034 1C4C     		ldr	r4, .L58
+ 1060 0036 1F49     		ldr	r1, .L58+12
+ 1061 0038 2046     		mov	r0, r4
+ 1062 003a FFF7FEFF 		bl	inv_icm207xx_get_chip_info
+ 1063              	.LVL80:
+ 285:Src/gyro.c    **** 
+ 1064              		.loc 1 285 0
+ 1065 003e 1E49     		ldr	r1, .L58+16
+ 1066 0040 FFF7FEFF 		bl	check_rc
+ 1067              	.LVL81:
+ 293:Src/gyro.c    **** 		!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_ACCEL)) {
+ 1068              		.loc 1 293 0
+ 1069 0044 0121     		movs	r1, #1
+ 1070 0046 2046     		mov	r0, r4
+ 1071 0048 FFF7FEFF 		bl	inv_icm207xx_is_sensor_enabled
+ 1072              	.LVL82:
+ 1073 004c F0B1     		cbz	r0, .L57
+ 1074              	.L54:
+ 301:Src/gyro.c    **** 	check_rc(rc, "Error %d while setting-up icm207xx device");
+ 1075              		.loc 1 301 0
+ 1076 004e 164D     		ldr	r5, .L58
+ 1077 0050 1422     		movs	r2, #20
+ 1078 0052 0021     		movs	r1, #0
+ 1079 0054 2846     		mov	r0, r5
+ 1080 0056 FFF7FEFF 		bl	inv_icm207xx_set_sensor_period
+ 1081              	.LVL83:
+ 302:Src/gyro.c    **** 
+ 1082              		.loc 1 302 0
+ 1083 005a 184C     		ldr	r4, .L58+20
+ 1084 005c 2146     		mov	r1, r4
+ 1085 005e FFF7FEFF 		bl	check_rc
+ 1086              	.LVL84:
+ 304:Src/gyro.c    **** 	check_rc(rc, "Error %d while setting-up icm207xx device");
+ 1087              		.loc 1 304 0
+ 1088 0062 1422     		movs	r2, #20
+ 1089 0064 0121     		movs	r1, #1
+ 1090 0066 2846     		mov	r0, r5
+ 1091 0068 FFF7FEFF 		bl	inv_icm207xx_set_sensor_period
+ 1092              	.LVL85:
+ 305:Src/gyro.c    **** 
+ 1093              		.loc 1 305 0
+ 1094 006c 2146     		mov	r1, r4
+ 1095 006e FFF7FEFF 		bl	check_rc
+ARM GAS  /tmp/ccDhQfGk.s 			page 35
+
+
+ 1096              	.LVL86:
+ 307:Src/gyro.c    **** 
+ 1097              		.loc 1 307 0
+ 1098 0072 134B     		ldr	r3, .L58+24
+ 1099 0074 44F62062 		movw	r2, #20000
+ 1100 0078 1A60     		str	r2, [r3]
+ 313:Src/gyro.c    **** 
+ 1101              		.loc 1 313 0
+ 1102 007a 0020     		movs	r0, #0
+ 1103 007c 03B0     		add	sp, sp, #12
+ 1104              	.LCFI21:
+ 1105              		.cfi_remember_state
+ 1106              		.cfi_def_cfa_offset 12
+ 1107              		@ sp needed
+ 1108 007e 30BD     		pop	{r4, r5, pc}
+ 1109              	.LVL87:
+ 1110              	.L56:
+ 1111              	.LCFI22:
+ 1112              		.cfi_restore_state
+ 281:Src/gyro.c    **** 	}
+ 1113              		.loc 1 281 0
+ 1114 0080 1049     		ldr	r1, .L58+28
+ 1115 0082 4FF0FF30 		mov	r0, #-1
+ 1116 0086 FFF7FEFF 		bl	check_rc
+ 1117              	.LVL88:
+ 1118 008a D3E7     		b	.L53
+ 1119              	.L57:
+ 294:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_VERBOSE, "Putting icm207xx in sleep mode...");
+ 1120              		.loc 1 294 0 discriminator 1
+ 1121 008c 0021     		movs	r1, #0
+ 1122 008e 2046     		mov	r0, r4
+ 1123 0090 FFF7FEFF 		bl	inv_icm207xx_is_sensor_enabled
+ 1124              	.LVL89:
+ 293:Src/gyro.c    **** 		!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_ACCEL)) {
+ 1125              		.loc 1 293 0 discriminator 1
+ 1126 0094 0028     		cmp	r0, #0
+ 1127 0096 DAD1     		bne	.L54
+ 296:Src/gyro.c    **** 		check_rc(rc, "Error %d while setting-up icm207xx device");
+ 1128              		.loc 1 296 0
+ 1129 0098 2046     		mov	r0, r4
+ 1130 009a FFF7FEFF 		bl	inv_icm207xx_initialize
+ 1131              	.LVL90:
+ 297:Src/gyro.c    **** 	}
+ 1132              		.loc 1 297 0
+ 1133 009e 0749     		ldr	r1, .L58+20
+ 1134 00a0 FFF7FEFF 		bl	check_rc
+ 1135              	.LVL91:
+ 1136 00a4 D3E7     		b	.L54
+ 1137              	.L59:
+ 1138 00a6 00BF     		.align	2
+ 1139              	.L58:
+ 1140 00a8 00000000 		.word	.LANCHOR8
+ 1141 00ac 00000000 		.word	.LC1
+ 1142 00b0 00000000 		.word	.LANCHOR11
+ 1143 00b4 00000000 		.word	.LANCHOR12
+ 1144 00b8 1C000000 		.word	.LC3
+ 1145 00bc 38000000 		.word	.LC4
+ARM GAS  /tmp/ccDhQfGk.s 			page 36
+
+
+ 1146 00c0 00000000 		.word	.LANCHOR2
+ 1147 00c4 18000000 		.word	.LC2
+ 1148              		.cfi_endproc
+ 1149              	.LFE154:
+ 1151              		.section	.text.icm207xx_sensor_configuration,"ax",%progbits
+ 1152              		.align	1
+ 1153              		.global	icm207xx_sensor_configuration
+ 1154              		.syntax unified
+ 1155              		.thumb
+ 1156              		.thumb_func
+ 1157              		.fpu fpv4-sp-d16
+ 1159              	icm207xx_sensor_configuration:
+ 1160              	.LFB155:
+ 316:Src/gyro.c    **** 	int rc;
+ 1161              		.loc 1 316 0
+ 1162              		.cfi_startproc
+ 1163              		@ args = 0, pretend = 0, frame = 0
+ 1164              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1165 0000 10B5     		push	{r4, lr}
+ 1166              	.LCFI23:
+ 1167              		.cfi_def_cfa_offset 8
+ 1168              		.cfi_offset 4, -8
+ 1169              		.cfi_offset 14, -4
+ 320:Src/gyro.c    **** 	check_rc(rc, "Error configuring ACC sensor");
+ 1170              		.loc 1 320 0
+ 1171 0002 4FF47A60 		mov	r0, #4000
+ 1172 0006 FFF7FEFF 		bl	inv_icm207xx_accel_fsr_2_reg
+ 1173              	.LVL92:
+ 1174 000a 0B4C     		ldr	r4, .L62
+ 1175 000c 0146     		mov	r1, r0
+ 1176 000e 2046     		mov	r0, r4
+ 1177 0010 FFF7FEFF 		bl	inv_icm207xx_set_accel_fullscale
+ 1178              	.LVL93:
+ 321:Src/gyro.c    **** 
+ 1179              		.loc 1 321 0
+ 1180 0014 0949     		ldr	r1, .L62+4
+ 1181 0016 FFF7FEFF 		bl	check_rc
+ 1182              	.LVL94:
+ 324:Src/gyro.c    **** 	check_rc(rc, "Error configuring GYR sensor");
+ 1183              		.loc 1 324 0
+ 1184 001a 4FF4FA60 		mov	r0, #2000
+ 1185 001e FFF7FEFF 		bl	inv_icm207xx_gyro_fsr_2_reg
+ 1186              	.LVL95:
+ 1187 0022 0146     		mov	r1, r0
+ 1188 0024 2046     		mov	r0, r4
+ 1189 0026 FFF7FEFF 		bl	inv_icm207xx_set_gyro_fullscale
+ 1190              	.LVL96:
+ 1191 002a 0446     		mov	r4, r0
+ 1192              	.LVL97:
+ 325:Src/gyro.c    **** 
+ 1193              		.loc 1 325 0
+ 1194 002c 0449     		ldr	r1, .L62+8
+ 1195 002e FFF7FEFF 		bl	check_rc
+ 1196              	.LVL98:
+ 328:Src/gyro.c    **** 
+ 1197              		.loc 1 328 0
+ 1198 0032 2046     		mov	r0, r4
+ARM GAS  /tmp/ccDhQfGk.s 			page 37
+
+
+ 1199 0034 10BD     		pop	{r4, pc}
+ 1200              	.LVL99:
+ 1201              	.L63:
+ 1202 0036 00BF     		.align	2
+ 1203              	.L62:
+ 1204 0038 00000000 		.word	.LANCHOR8
+ 1205 003c 00000000 		.word	.LC5
+ 1206 0040 20000000 		.word	.LC6
+ 1207              		.cfi_endproc
+ 1208              	.LFE155:
+ 1210              		.section	.text.icm207xx_run_selftest,"ax",%progbits
+ 1211              		.align	1
+ 1212              		.global	icm207xx_run_selftest
+ 1213              		.syntax unified
+ 1214              		.thumb
+ 1215              		.thumb_func
+ 1216              		.fpu fpv4-sp-d16
+ 1218              	icm207xx_run_selftest:
+ 1219              	.LFB157:
+ 339:Src/gyro.c    **** 	int raw_bias[12];
+ 1220              		.loc 1 339 0
+ 1221              		.cfi_startproc
+ 1222              		@ args = 0, pretend = 0, frame = 48
+ 1223              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1224 0000 10B5     		push	{r4, lr}
+ 1225              	.LCFI24:
+ 1226              		.cfi_def_cfa_offset 8
+ 1227              		.cfi_offset 4, -8
+ 1228              		.cfi_offset 14, -4
+ 1229 0002 8CB0     		sub	sp, sp, #48
+ 1230              	.LCFI25:
+ 1231              		.cfi_def_cfa_offset 56
+ 1232              	.LVL100:
+ 343:Src/gyro.c    **** 		INV_MSG(INV_MSG_LEVEL_INFO, "Self-test has already ran. Skipping.");
+ 1233              		.loc 1 343 0
+ 1234 0004 104B     		ldr	r3, .L70
+ 1235 0006 93F86630 		ldrb	r3, [r3, #102]	@ zero_extendqisi2
+ 1236 000a 012B     		cmp	r3, #1
+ 1237 000c 16D0     		beq	.L67
+ 354:Src/gyro.c    **** 		/* Check transport errors */
+ 1238              		.loc 1 354 0
+ 1239 000e 0E48     		ldr	r0, .L70
+ 1240 0010 FFF7FEFF 		bl	inv_icm207xx_run_selftest
+ 1241              	.LVL101:
+ 1242 0014 0446     		mov	r4, r0
+ 1243              	.LVL102:
+ 356:Src/gyro.c    **** 		if (rc != 0x3) {
+ 1244              		.loc 1 356 0
+ 1245 0016 0D49     		ldr	r1, .L70+4
+ 1246 0018 FFF7FEFF 		bl	check_rc
+ 1247              	.LVL103:
+ 357:Src/gyro.c    **** 			/*
+ 1248              		.loc 1 357 0
+ 1249 001c 032C     		cmp	r4, #3
+ 1250 001e 0FD1     		bne	.L68
+ 367:Src/gyro.c    **** 
+ 1251              		.loc 1 367 0
+ARM GAS  /tmp/ccDhQfGk.s 			page 38
+
+
+ 1252 0020 094B     		ldr	r3, .L70
+ 1253 0022 0122     		movs	r2, #1
+ 1254 0024 83F86620 		strb	r2, [r3, #102]
+ 370:Src/gyro.c    **** 	}
+ 1255              		.loc 1 370 0
+ 1256 0028 FFF7FEFF 		bl	icm207xx_sensor_setup
+ 1257              	.LVL104:
+ 1258 002c 0446     		mov	r4, r0
+ 1259              	.LVL105:
+ 1260              	.L65:
+ 377:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "GYR LN bias (FS=250dps) (dps): x=%f, y=%f, z=%f",
+ 1261              		.loc 1 377 0
+ 1262 002e 6946     		mov	r1, sp
+ 1263 0030 0548     		ldr	r0, .L70
+ 1264 0032 FFF7FEFF 		bl	inv_icm207xx_get_st_bias
+ 1265              	.LVL106:
+ 1266              	.L64:
+ 388:Src/gyro.c    **** 
+ 1267              		.loc 1 388 0
+ 1268 0036 2046     		mov	r0, r4
+ 1269 0038 0CB0     		add	sp, sp, #48
+ 1270              	.LCFI26:
+ 1271              		.cfi_remember_state
+ 1272              		.cfi_def_cfa_offset 8
+ 1273              		@ sp needed
+ 1274 003a 10BD     		pop	{r4, pc}
+ 1275              	.LVL107:
+ 1276              	.L67:
+ 1277              	.LCFI27:
+ 1278              		.cfi_restore_state
+ 341:Src/gyro.c    **** 
+ 1279              		.loc 1 341 0
+ 1280 003c 0024     		movs	r4, #0
+ 1281 003e F6E7     		b	.L65
+ 1282              	.LVL108:
+ 1283              	.L68:
+ 364:Src/gyro.c    **** 		} else
+ 1284              		.loc 1 364 0
+ 1285 0040 4FF0FF34 		mov	r4, #-1
+ 1286              	.LVL109:
+ 1287 0044 F7E7     		b	.L64
+ 1288              	.L71:
+ 1289 0046 00BF     		.align	2
+ 1290              	.L70:
+ 1291 0048 00000000 		.word	.LANCHOR8
+ 1292 004c 00000000 		.word	.LC7
+ 1293              		.cfi_endproc
+ 1294              	.LFE157:
+ 1296              		.section	.text.sensor_control,"ax",%progbits
+ 1297              		.align	1
+ 1298              		.global	sensor_control
+ 1299              		.syntax unified
+ 1300              		.thumb
+ 1301              		.thumb_func
+ 1302              		.fpu fpv4-sp-d16
+ 1304              	sensor_control:
+ 1305              	.LFB159:
+ARM GAS  /tmp/ccDhQfGk.s 			page 39
+
+
+ 402:Src/gyro.c    **** 	int rc = 0;
+ 1306              		.loc 1 402 0
+ 1307              		.cfi_startproc
+ 1308              		@ args = 0, pretend = 0, frame = 0
+ 1309              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1310              	.LVL110:
+ 1311 0000 38B5     		push	{r3, r4, r5, lr}
+ 1312              	.LCFI28:
+ 1313              		.cfi_def_cfa_offset 16
+ 1314              		.cfi_offset 3, -16
+ 1315              		.cfi_offset 4, -12
+ 1316              		.cfi_offset 5, -8
+ 1317              		.cfi_offset 14, -4
+ 1318              	.LVL111:
+ 407:Src/gyro.c    **** 		return rc;
+ 1319              		.loc 1 407 0
+ 1320 0002 0346     		mov	r3, r0
+ 1321 0004 18B1     		cbz	r0, .L73
+ 407:Src/gyro.c    **** 		return rc;
+ 1322              		.loc 1 407 0 is_stmt 0 discriminator 1
+ 1323 0006 2A4A     		ldr	r2, .L89
+ 1324 0008 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 1325 000a 002A     		cmp	r2, #0
+ 1326 000c 4ED1     		bne	.L82
+ 1327              	.L73:
+ 410:Src/gyro.c    **** 		sensors_on = 1;
+ 1328              		.loc 1 410 0 is_stmt 1
+ 1329 000e E3B1     		cbz	r3, .L75
+ 411:Src/gyro.c    **** 	else
+ 1330              		.loc 1 411 0
+ 1331 0010 274A     		ldr	r2, .L89
+ 1332 0012 0121     		movs	r1, #1
+ 1333 0014 1170     		strb	r1, [r2]
+ 1334              	.L76:
+ 426:Src/gyro.c    **** 		/* Clock is more accurate when gyro is enabled, so let's enable it first to prevent side effect a
+ 1335              		.loc 1 426 0
+ 1336 0016 8BB3     		cbz	r3, .L77
+ 428:Src/gyro.c    **** 			rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_GYRO, 1);
+ 1337              		.loc 1 428 0
+ 1338 0018 0121     		movs	r1, #1
+ 1339 001a 2648     		ldr	r0, .L89+4
+ 1340              	.LVL112:
+ 1341 001c FFF7FEFF 		bl	inv_icm207xx_is_sensor_enabled
+ 1342              	.LVL113:
+ 1343 0020 B8B1     		cbz	r0, .L85
+ 403:Src/gyro.c    **** 	static uint8_t sensors_on = 0;
+ 1344              		.loc 1 403 0
+ 1345 0022 0024     		movs	r4, #0
+ 1346              	.LVL114:
+ 1347              	.L78:
+ 430:Src/gyro.c    **** 			rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_ACCEL, 1);
+ 1348              		.loc 1 430 0
+ 1349 0024 0021     		movs	r1, #0
+ 1350 0026 2348     		ldr	r0, .L89+4
+ 1351 0028 FFF7FEFF 		bl	inv_icm207xx_is_sensor_enabled
+ 1352              	.LVL115:
+ 1353 002c C0B1     		cbz	r0, .L86
+ARM GAS  /tmp/ccDhQfGk.s 			page 40
+
+
+ 1354              	.L79:
+ 432:Src/gyro.c    **** 			rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_TEMPERATURE, 1);
+ 1355              		.loc 1 432 0
+ 1356 002e 0521     		movs	r1, #5
+ 1357 0030 2048     		ldr	r0, .L89+4
+ 1358 0032 FFF7FEFF 		bl	inv_icm207xx_is_sensor_enabled
+ 1359              	.LVL116:
+ 1360 0036 D0B1     		cbz	r0, .L87
+ 1361              	.L80:
+ 442:Src/gyro.c    **** 	} else {
+ 1362              		.loc 1 442 0
+ 1363 0038 1F4B     		ldr	r3, .L89+8
+ 1364 003a 0222     		movs	r2, #2
+ 1365 003c 1A70     		strb	r2, [r3]
+ 1366              	.L81:
+ 450:Src/gyro.c    **** 		rc += timer_clear_irq_timestamp();
+ 1367              		.loc 1 450 0
+ 1368 003e 1D48     		ldr	r0, .L89+4
+ 1369 0040 FFF7FEFF 		bl	inv_icm207xx_all_sensors_off
+ 1370              	.LVL117:
+ 1371 0044 70BB     		cbnz	r0, .L88
+ 1372              	.LVL118:
+ 1373              	.L72:
+ 454:Src/gyro.c    **** 
+ 1374              		.loc 1 454 0
+ 1375 0046 2046     		mov	r0, r4
+ 1376 0048 38BD     		pop	{r3, r4, r5, pc}
+ 1377              	.LVL119:
+ 1378              	.L75:
+ 413:Src/gyro.c    **** 
+ 1379              		.loc 1 413 0
+ 1380 004a 194A     		ldr	r2, .L89
+ 1381 004c 0021     		movs	r1, #0
+ 1382 004e 1170     		strb	r1, [r2]
+ 1383 0050 E1E7     		b	.L76
+ 1384              	.LVL120:
+ 1385              	.L85:
+ 429:Src/gyro.c    **** 		if (!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_ACCEL))
+ 1386              		.loc 1 429 0
+ 1387 0052 0122     		movs	r2, #1
+ 1388 0054 1146     		mov	r1, r2
+ 1389 0056 1748     		ldr	r0, .L89+4
+ 1390 0058 FFF7FEFF 		bl	inv_icm207xx_enable_sensor
+ 1391              	.LVL121:
+ 1392 005c 0446     		mov	r4, r0
+ 1393              	.LVL122:
+ 1394 005e E1E7     		b	.L78
+ 1395              	.LVL123:
+ 1396              	.L86:
+ 431:Src/gyro.c    **** 		if (!inv_icm207xx_is_sensor_enabled(&icm_device, INV_ICM207XX_SENSOR_TEMPERATURE))
+ 1397              		.loc 1 431 0
+ 1398 0060 0122     		movs	r2, #1
+ 1399 0062 0021     		movs	r1, #0
+ 1400 0064 1348     		ldr	r0, .L89+4
+ 1401 0066 FFF7FEFF 		bl	inv_icm207xx_enable_sensor
+ 1402              	.LVL124:
+ 1403 006a 0444     		add	r4, r4, r0
+ARM GAS  /tmp/ccDhQfGk.s 			page 41
+
+
+ 1404              	.LVL125:
+ 1405 006c DFE7     		b	.L79
+ 1406              	.L87:
+ 433:Src/gyro.c    **** 		/*
+ 1407              		.loc 1 433 0
+ 1408 006e 0122     		movs	r2, #1
+ 1409 0070 0521     		movs	r1, #5
+ 1410 0072 1048     		ldr	r0, .L89+4
+ 1411 0074 FFF7FEFF 		bl	inv_icm207xx_enable_sensor
+ 1412              	.LVL126:
+ 1413 0078 0444     		add	r4, r4, r0
+ 1414              	.LVL127:
+ 1415 007a DDE7     		b	.L80
+ 1416              	.LVL128:
+ 1417              	.L77:
+ 444:Src/gyro.c    **** 		rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_ACCEL, 0);
+ 1418              		.loc 1 444 0
+ 1419 007c 0D4D     		ldr	r5, .L89+4
+ 1420 007e 0022     		movs	r2, #0
+ 1421 0080 0121     		movs	r1, #1
+ 1422 0082 2846     		mov	r0, r5
+ 1423              	.LVL129:
+ 1424 0084 FFF7FEFF 		bl	inv_icm207xx_enable_sensor
+ 1425              	.LVL130:
+ 1426 0088 0446     		mov	r4, r0
+ 1427              	.LVL131:
+ 445:Src/gyro.c    **** 		rc += inv_icm207xx_enable_sensor(&icm_device, INV_ICM207XX_SENSOR_TEMPERATURE, 0);
+ 1428              		.loc 1 445 0
+ 1429 008a 0022     		movs	r2, #0
+ 1430 008c 1146     		mov	r1, r2
+ 1431 008e 2846     		mov	r0, r5
+ 1432              	.LVL132:
+ 1433 0090 FFF7FEFF 		bl	inv_icm207xx_enable_sensor
+ 1434              	.LVL133:
+ 1435 0094 0444     		add	r4, r4, r0
+ 1436              	.LVL134:
+ 446:Src/gyro.c    **** 	}
+ 1437              		.loc 1 446 0
+ 1438 0096 0022     		movs	r2, #0
+ 1439 0098 0521     		movs	r1, #5
+ 1440 009a 2846     		mov	r0, r5
+ 1441 009c FFF7FEFF 		bl	inv_icm207xx_enable_sensor
+ 1442              	.LVL135:
+ 1443 00a0 0444     		add	r4, r4, r0
+ 1444              	.LVL136:
+ 1445 00a2 CCE7     		b	.L81
+ 1446              	.L88:
+ 451:Src/gyro.c    **** 
+ 1447              		.loc 1 451 0
+ 1448 00a4 FFF7FEFF 		bl	timer_clear_irq_timestamp
+ 1449              	.LVL137:
+ 1450 00a8 0444     		add	r4, r4, r0
+ 1451              	.LVL138:
+ 1452 00aa CCE7     		b	.L72
+ 1453              	.LVL139:
+ 1454              	.L82:
+ 408:Src/gyro.c    **** 
+ARM GAS  /tmp/ccDhQfGk.s 			page 42
+
+
+ 1455              		.loc 1 408 0
+ 1456 00ac 0024     		movs	r4, #0
+ 1457 00ae CAE7     		b	.L72
+ 1458              	.L90:
+ 1459              		.align	2
+ 1460              	.L89:
+ 1461 00b0 00000000 		.word	.LANCHOR13
+ 1462 00b4 00000000 		.word	.LANCHOR8
+ 1463 00b8 00000000 		.word	.LANCHOR9
+ 1464              		.cfi_endproc
+ 1465              	.LFE159:
+ 1467              		.section	.text.sensor_configure_odr,"ax",%progbits
+ 1468              		.align	1
+ 1469              		.global	sensor_configure_odr
+ 1470              		.syntax unified
+ 1471              		.thumb
+ 1472              		.thumb_func
+ 1473              		.fpu fpv4-sp-d16
+ 1475              	sensor_configure_odr:
+ 1476              	.LFB163:
+ 608:Src/gyro.c    **** 	int rc = 0;
+ 1477              		.loc 1 608 0
+ 1478              		.cfi_startproc
+ 1479              		@ args = 0, pretend = 0, frame = 0
+ 1480              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1481              	.LVL140:
+ 1482 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 1483              	.LCFI29:
+ 1484              		.cfi_def_cfa_offset 24
+ 1485              		.cfi_offset 3, -24
+ 1486              		.cfi_offset 4, -20
+ 1487              		.cfi_offset 5, -16
+ 1488              		.cfi_offset 6, -12
+ 1489              		.cfi_offset 7, -8
+ 1490              		.cfi_offset 14, -4
+ 1491              	.LVL141:
+ 614:Src/gyro.c    **** 		return rc;
+ 1492              		.loc 1 614 0
+ 1493 0002 244B     		ldr	r3, .L100
+ 1494 0004 1B68     		ldr	r3, [r3]
+ 1495 0006 9842     		cmp	r0, r3
+ 1496 0008 42D0     		beq	.L95
+ 1497 000a 0446     		mov	r4, r0
+ 620:Src/gyro.c    **** 		odr_us = MIN_ODR_US;
+ 1498              		.loc 1 620 0
+ 1499 000c B0F57A7F 		cmp	r0, #1000
+ 1500 0010 06DB     		blt	.L96
+ 629:Src/gyro.c    **** 		odr_us = MAX_ODR_US;
+ 1501              		.loc 1 629 0
+ 1502 0012 44F62063 		movw	r3, #20000
+ 1503 0016 9842     		cmp	r0, r3
+ 1504 0018 04DD     		ble	.L93
+ 630:Src/gyro.c    **** 	/*
+ 1505              		.loc 1 630 0
+ 1506 001a 44F62064 		movw	r4, #20000
+ 1507 001e 01E0     		b	.L93
+ 1508              	.L96:
+ARM GAS  /tmp/ccDhQfGk.s 			page 43
+
+
+ 621:Src/gyro.c    **** 
+ 1509              		.loc 1 621 0
+ 1510 0020 4FF47A74 		mov	r4, #1000
+ 1511              	.L93:
+ 1512              	.LVL142:
+ 634:Src/gyro.c    **** 	rc += inv_icm207xx_set_sensor_period(&icm_device, INV_ICM207XX_SENSOR_GYRO, odr_us / 1000);
+ 1513              		.loc 1 634 0
+ 1514 0024 1C4B     		ldr	r3, .L100+4
+ 1515 0026 83FB0423 		smull	r2, r3, r3, r4
+ 1516 002a E517     		asrs	r5, r4, #31
+ 1517 002c C5EBA315 		rsb	r5, r5, r3, asr #6
+ 1518 0030 ADB2     		uxth	r5, r5
+ 1519 0032 1A4F     		ldr	r7, .L100+8
+ 1520 0034 2A46     		mov	r2, r5
+ 1521 0036 0021     		movs	r1, #0
+ 1522 0038 3846     		mov	r0, r7
+ 1523 003a FFF7FEFF 		bl	inv_icm207xx_set_sensor_period
+ 1524              	.LVL143:
+ 1525 003e 0646     		mov	r6, r0
+ 1526              	.LVL144:
+ 635:Src/gyro.c    **** 	/* FIFO has been reset by ODR change */
+ 1527              		.loc 1 635 0
+ 1528 0040 2A46     		mov	r2, r5
+ 1529 0042 0121     		movs	r1, #1
+ 1530 0044 3846     		mov	r0, r7
+ 1531              	.LVL145:
+ 1532 0046 FFF7FEFF 		bl	inv_icm207xx_set_sensor_period
+ 1533              	.LVL146:
+ 637:Src/gyro.c    **** 		rc += timer_clear_irq_timestamp();
+ 1534              		.loc 1 637 0
+ 1535 004a 3518     		adds	r5, r6, r0
+ 1536              	.LVL147:
+ 1537 004c 17D0     		beq	.L99
+ 1538              	.LVL148:
+ 1539              	.L94:
+ 646:Src/gyro.c    **** 
+ 1540              		.loc 1 646 0
+ 1541 004e 114B     		ldr	r3, .L100
+ 1542 0050 1C60     		str	r4, [r3]
+ 651:Src/gyro.c    **** 
+ 1543              		.loc 1 651 0
+ 1544 0052 2146     		mov	r1, r4
+ 1545 0054 1248     		ldr	r0, .L100+12
+ 1546 0056 FFF7FEFF 		bl	Algo_InvnCalibration_GyroCalibrationFxp_SetSamplingPeriod
+ 1547              	.LVL149:
+ 656:Src/gyro.c    **** 
+ 1548              		.loc 1 656 0
+ 1549 005a 2146     		mov	r1, r4
+ 1550 005c 1148     		ldr	r0, .L100+16
+ 1551 005e FFF7FEFF 		bl	Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_SetSamplingPeriod
+ 1552              	.LVL150:
+ 661:Src/gyro.c    **** 	Algo_InvnOrientation_BodyToWorldFrameFxp_SetAccSamplingPeriod(sGRV.C_buffer.buf, odr_us, chip_info
+ 1553              		.loc 1 661 0
+ 1554 0062 114F     		ldr	r7, .L100+20
+ 1555 0064 114E     		ldr	r6, .L100+24
+ 1556 0066 3A46     		mov	r2, r7
+ 1557 0068 2146     		mov	r1, r4
+ARM GAS  /tmp/ccDhQfGk.s 			page 44
+
+
+ 1558 006a 3046     		mov	r0, r6
+ 1559 006c FFF7FEFF 		bl	Algo_InvnOrientation_BodyToWorldFrameFxp_SetGyrSamplingPeriod
+ 1560              	.LVL151:
+ 662:Src/gyro.c    **** 
+ 1561              		.loc 1 662 0
+ 1562 0070 3A46     		mov	r2, r7
+ 1563 0072 2146     		mov	r1, r4
+ 1564 0074 3046     		mov	r0, r6
+ 1565 0076 FFF7FEFF 		bl	Algo_InvnOrientation_BodyToWorldFrameFxp_SetAccSamplingPeriod
+ 1566              	.LVL152:
+ 1567              	.L91:
+ 665:Src/gyro.c    **** 
+ 1568              		.loc 1 665 0
+ 1569 007a 2846     		mov	r0, r5
+ 1570 007c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 1571              	.LVL153:
+ 1572              	.L99:
+ 638:Src/gyro.c    **** 		/* Clear any remaining interrupts */
+ 1573              		.loc 1 638 0
+ 1574 007e FFF7FEFF 		bl	timer_clear_irq_timestamp
+ 1575              	.LVL154:
+ 1576 0082 0544     		add	r5, r5, r0
+ 1577              	.LVL155:
+ 641:Src/gyro.c    **** 		//__enable_irq();
+ 1578              		.loc 1 641 0
+ 1579 0084 0A4A     		ldr	r2, .L100+28
+ 1580 0086 1368     		ldr	r3, [r2]
+ 1581 0088 23F00103 		bic	r3, r3, #1
+ 1582 008c 1360     		str	r3, [r2]
+ 1583 008e DEE7     		b	.L94
+ 1584              	.LVL156:
+ 1585              	.L95:
+ 615:Src/gyro.c    **** 
+ 1586              		.loc 1 615 0
+ 1587 0090 0025     		movs	r5, #0
+ 1588 0092 F2E7     		b	.L91
+ 1589              	.L101:
+ 1590              		.align	2
+ 1591              	.L100:
+ 1592 0094 00000000 		.word	.LANCHOR2
+ 1593 0098 D34D6210 		.word	274877907
+ 1594 009c 00000000 		.word	.LANCHOR8
+ 1595 00a0 34000000 		.word	.LANCHOR1+52
+ 1596 00a4 1C000000 		.word	.LANCHOR3+28
+ 1597 00a8 00000000 		.word	.LANCHOR12
+ 1598 00ac 28000000 		.word	.LANCHOR4+40
+ 1599 00b0 00000000 		.word	.LANCHOR0
+ 1600              		.cfi_endproc
+ 1601              	.LFE163:
+ 1603              		.section	.text.gyroinit,"ax",%progbits
+ 1604              		.align	1
+ 1605              		.global	gyroinit
+ 1606              		.syntax unified
+ 1607              		.thumb
+ 1608              		.thumb_func
+ 1609              		.fpu fpv4-sp-d16
+ 1611              	gyroinit:
+ARM GAS  /tmp/ccDhQfGk.s 			page 45
+
+
+ 1612              	.LFB148:
+ 124:Src/gyro.c    **** 	struct inv_icm207xx_serif icm207xx_serif;
+ 1613              		.loc 1 124 0
+ 1614              		.cfi_startproc
+ 1615              		@ args = 0, pretend = 0, frame = 24
+ 1616              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1617              	.LVL157:
+ 1618 0000 30B5     		push	{r4, r5, lr}
+ 1619              	.LCFI30:
+ 1620              		.cfi_def_cfa_offset 12
+ 1621              		.cfi_offset 4, -12
+ 1622              		.cfi_offset 5, -8
+ 1623              		.cfi_offset 14, -4
+ 1624 0002 87B0     		sub	sp, sp, #28
+ 1625              	.LCFI31:
+ 1626              		.cfi_def_cfa_offset 40
+ 126:Src/gyro.c    **** 	icm207xx_serif.read_reg  = idd_io_hal_read_reg;
+ 1627              		.loc 1 126 0
+ 1628 0004 0090     		str	r0, [sp]
+ 127:Src/gyro.c    **** 	icm207xx_serif.write_reg = idd_io_hal_write_reg;
+ 1629              		.loc 1 127 0
+ 1630 0006 134B     		ldr	r3, .L104
+ 1631 0008 0193     		str	r3, [sp, #4]
+ 128:Src/gyro.c    **** 	icm207xx_serif.max_read  = 1024*32; /* maximum number of bytes allowed per serial read */
+ 1632              		.loc 1 128 0
+ 1633 000a 134B     		ldr	r3, .L104+4
+ 1634 000c 0293     		str	r3, [sp, #8]
+ 129:Src/gyro.c    **** 	icm207xx_serif.max_write = 1024*32; /* maximum number of bytes allowed per serial write */
+ 1635              		.loc 1 129 0
+ 1636 000e 4FF40043 		mov	r3, #32768
+ 1637 0012 0393     		str	r3, [sp, #12]
+ 130:Src/gyro.c    **** 	icm207xx_serif.is_spi    = 1;
+ 1638              		.loc 1 130 0
+ 1639 0014 0493     		str	r3, [sp, #16]
+ 131:Src/gyro.c    **** 	INV_MSG(INV_MSG_LEVEL_INFO, "Openning serial interface through SPI");
+ 1640              		.loc 1 131 0
+ 1641 0016 0123     		movs	r3, #1
+ 1642 0018 0593     		str	r3, [sp, #20]
+ 1643              	.LVL158:
+ 1644              	.LBB11:
+ 1645              	.LBB12:
+ 1646              		.file 2 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h"
+   1:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /*
+   2:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * ________________________________________________________________________________________________
+   3:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * Copyright (c) 2015-2015 InvenSense Inc. All rights reserved.
+   4:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *
+   5:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * This software, related documentation and any modifications thereto (collectively “Software”)
+   6:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyr
+   7:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * and other intellectual property rights laws.
+   8:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *
+   9:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * InvenSense and its licensors retain all intellectual property and proprietary rights in and to t
+  10:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * and any use, reproduction, disclosure or distribution of the Software without an express license
+  11:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * from InvenSense is strictly prohibited.
+  12:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *
+  13:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, THE SOFTWARE IS
+  14:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  15:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+ARM GAS  /tmp/ccDhQfGk.s 			page 46
+
+
+  16:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * EXCEPT AS OTHERWISE PROVIDED IN A LICENSE AGREEMENT BETWEEN THE PARTIES, IN NO EVENT SHALL
+  17:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * INVENSENSE BE LIABLE FOR ANY DIRECT, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR
+  18:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT
+  19:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  20:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * OF THE SOFTWARE.
+  21:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  * ________________________________________________________________________________________________
+  22:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+  23:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  24:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /** @defgroup DriverIcm207xx Icm207xx driver
+  25:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @brief    Low-level driver for Icm207xx devices
+  26:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @ingroup  Drivers
+  27:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @{
+  28:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+  29:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  30:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #ifndef _INV_ICM207XX_H_
+  31:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #define _INV_ICM207XX_H_
+  32:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  33:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/InvBool.h"
+  34:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/InvError.h"
+  35:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  36:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/Devices/Drivers/Icm207xx/Icm207xxCtrl.h"
+  37:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/Devices/Drivers/Icm207xx/Icm207xxSelfTest.h"
+  38:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/Devices/Drivers/Icm207xx/Icm207xxSerif.h"
+  39:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.h"
+  40:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/Devices/Drivers/Icm207xx/Icm207xxTransport.h"
+  41:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/Devices/Drivers/Icm207xx/Icm207xxAuxTransport.h"
+  42:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include "Invn/Devices/Drivers/Icm207xx/Icm207xxAuxCompassAkm.h"
+  43:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  44:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include <stdint.h>
+  45:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include <assert.h>
+  46:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #include <string.h>
+  47:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  48:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #ifdef __cplusplus
+  49:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** extern "C" {
+  50:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** #endif
+  51:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  52:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /** @brief Icm207xx driver states definition
+  53:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+  54:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** typedef struct inv_icm207xx {
+  55:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	struct inv_icm207xx_serif serif;
+  56:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	struct inv_icm207xx_serif serif_ois;
+  57:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	inv_bool_t use_serif_ois; /* set to 1 is ois serif has been set */
+  58:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+  59:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	/** @brief icm207xx internal state structure*/
+  60:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	struct inv_icm207xx_states {
+  61:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  wake_state;
+  62:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  pwr_mgmt_1;
+  63:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  pwr_mgmt_2;
+  64:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  lp_config;
+  65:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  gyro_div;
+  66:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  user_ctrl;
+  67:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint16_t accel_div;
+  68:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint16_t compass_div;
+  69:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  gyro_averaging;
+  70:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  accel_averaging;
+  71:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  gyro_fullscale;
+  72:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	    uint8_t  gyro_ois_fullscale;
+ARM GAS  /tmp/ccDhQfGk.s 			page 47
+
+
+  73:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  accel_fullscale;
+  74:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	    uint8_t  accel_ois_fullscale;
+  75:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  gyro_bw;
+  76:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  accel_bw;
+  77:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  lp_en_support:1;
+  78:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  serial_interface;
+  79:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  timebase_correction_pll;
+  80:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint16_t sample_rate;
+  81:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t  sample_repeat_cnt;
+  82:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	} base_state;
+  83:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint8_t  power_state;
+  84:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint32_t android_sensor_mask; // a bit mask corresponding to enum ANDROID_SENSORS
+  85:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint16_t requested_odr[INV_ICM207XX_SENSOR_MAX];
+  86:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint8_t  dropped_data[INV_ICM207XX_SENSOR_MAX];
+  87:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint8_t  selftest_done;
+  88:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint8_t  wom_enabled;
+  89:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	/* collected bias values (lsb) during self test */
+  90:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	int gyro_ois_st_bias[3];
+  91:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	int accel_ois_st_bias[3];
+  92:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	int gyro_st_bias[3];
+  93:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	int accel_st_bias[3];
+  94:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	/* collected bias value to apply in register */
+  95:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint16_t accel_ois_reg_bias[3];
+  96:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint16_t accel_reg_bias[3];
+  97:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	uint8_t accel_reg_bias_computed;
+  98:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	/** @brief secondary device support */
+  99:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	struct inv_icm207xx_secondary_states {
+ 100:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		/** @brief secondary register mapping*/
+ 101:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		struct inv_icm207xx_secondary_reg {
+ 102:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 			uint16_t addr;
+ 103:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 			uint16_t reg;
+ 104:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 			uint16_t ctrl;
+ 105:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 			uint16_t d0;
+ 106:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		} slv_reg[4];
+ 107:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		/* compass support */
+ 108:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t compass_sens[3];
+ 109:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		int16_t *st_upper;
+ 110:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		int16_t *st_lower;
+ 111:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t compass_id;
+ 112:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t compass_i2c_addr;
+ 113:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t compass_aux_ch;
+ 114:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t secondary_resume_state;
+ 115:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t mode_reg_addr;
+ 116:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		uint8_t i2c_mst_dly;
+ 117:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	} secondary_state;
+ 118:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** } inv_icm207xx_t;
+ 119:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+ 120:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /** @brief Hook for low-level system sleep() function to be implemented by upper layer
+ 121:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @param[in] ms number of millisecond the calling thread should sleep
+ 122:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+ 123:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** extern void inv_icm207xx_sleep(int ms);
+ 124:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+ 125:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /** @brief Hook for low-level high res system sleep() function to be implemented by upper layer
+ 126:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  ~100us resolution is sufficient
+ 127:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @param[in] us number of us the calling thread should sleep
+ 128:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+ 129:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** extern void inv_icm207xx_sleep_us(int us);
+ARM GAS  /tmp/ccDhQfGk.s 			page 48
+
+
+ 130:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+ 131:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /** @brief Hook for low-level system time() function to be implemented by upper layer
+ 132:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @return monotonic timestamp in us
+ 133:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+ 134:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** extern uint64_t inv_icm207xx_get_time_us(void);
+ 135:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+ 136:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /** @brief Hook to get interrupt data ready timestamp to be implemented by upper layer
+ 137:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  Using this hook in embedded firmware, the timestamping could be done in ISR and allowed a bette
+ 138:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  But in host application, this function will have the same implementation than get_time_us()  
+ 139:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @return data ready interrupt timestamp in us
+ 140:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+ 141:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** extern uint64_t inv_icm207xx_get_dataready_interrupt_time_us(void);
+ 142:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 
+ 143:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** /** @brief Reset and initialize driver states
+ 144:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @param[in] s handle to driver states structure
+ 145:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  *  @param[in] serif handle to SERIF object for underlying register access
+ 146:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h ****  */
+ 147:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** static inline void inv_icm207xx_reset_states(struct inv_icm207xx * s,
+ 148:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 		const struct inv_icm207xx_serif * serif)
+ 149:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** {
+ 150:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	memset(s, 0, sizeof(*s));
+ 1647              		.loc 2 150 0
+ 1648 001a 104C     		ldr	r4, .L104+8
+ 1649 001c C422     		movs	r2, #196
+ 1650 001e 0021     		movs	r1, #0
+ 1651 0020 04F11800 		add	r0, r4, #24
+ 1652              	.LVL159:
+ 1653 0024 FFF7FEFF 		bl	memset
+ 1654              	.LVL160:
+ 151:Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xx.h **** 	s->serif = *serif;
+ 1655              		.loc 2 151 0
+ 1656 0028 6D46     		mov	r5, sp
+ 1657 002a 0FCD     		ldmia	r5!, {r0, r1, r2, r3}
+ 1658 002c 0FC4     		stmia	r4!, {r0, r1, r2, r3}
+ 1659 002e 95E80300 		ldm	r5, {r0, r1}
+ 1660 0032 84E80300 		stm	r4, {r0, r1}
+ 1661              	.LVL161:
+ 1662              	.LBE12:
+ 1663              	.LBE11:
+ 142:Src/gyro.c    ****     icm207xx_sensor_configuration();
+ 1664              		.loc 1 142 0
+ 1665 0036 FFF7FEFF 		bl	icm207xx_sensor_setup
+ 1666              	.LVL162:
+ 143:Src/gyro.c    ****     /*
+ 1667              		.loc 1 143 0
+ 1668 003a FFF7FEFF 		bl	icm207xx_sensor_configuration
+ 1669              	.LVL163:
+ 147:Src/gyro.c    **** 
+ 1670              		.loc 1 147 0
+ 1671 003e FFF7FEFF 		bl	algorithms_init
+ 1672              	.LVL164:
+ 152:Src/gyro.c    **** 	timer_configure_callback(ext_interrupt_cb);
+ 1673              		.loc 1 152 0
+ 1674 0042 074B     		ldr	r3, .L104+12
+ 1675 0044 1868     		ldr	r0, [r3]
+ 1676 0046 FFF7FEFF 		bl	sensor_configure_odr
+ 1677              	.LVL165:
+ARM GAS  /tmp/ccDhQfGk.s 			page 49
+
+
+ 153:Src/gyro.c    **** //	icm207xx_run_selftest();
+ 1678              		.loc 1 153 0
+ 1679 004a 0648     		ldr	r0, .L104+16
+ 1680 004c FFF7FEFF 		bl	timer_configure_callback
+ 1681              	.LVL166:
+ 158:Src/gyro.c    **** 
+ 1682              		.loc 1 158 0
+ 1683 0050 07B0     		add	sp, sp, #28
+ 1684              	.LCFI32:
+ 1685              		.cfi_def_cfa_offset 12
+ 1686              	.LVL167:
+ 1687              		@ sp needed
+ 1688 0052 30BD     		pop	{r4, r5, pc}
+ 1689              	.LVL168:
+ 1690              	.L105:
+ 1691              		.align	2
+ 1692              	.L104:
+ 1693 0054 00000000 		.word	idd_io_hal_read_reg
+ 1694 0058 00000000 		.word	idd_io_hal_write_reg
+ 1695 005c 00000000 		.word	.LANCHOR8
+ 1696 0060 00000000 		.word	.LANCHOR2
+ 1697 0064 00000000 		.word	ext_interrupt_cb
+ 1698              		.cfi_endproc
+ 1699              	.LFE148:
+ 1701              		.section	.bss.chip_info,"aw",%nobits
+ 1702              		.align	2
+ 1703              		.set	.LANCHOR12,. + 0
+ 1706              	chip_info:
+ 1707 0000 000000   		.space	3
+ 1708              		.section	.bss.icm_device,"aw",%nobits
+ 1709              		.align	2
+ 1710              		.set	.LANCHOR8,. + 0
+ 1713              	icm_device:
+ 1714 0000 00000000 		.space	220
+ 1714      00000000 
+ 1714      00000000 
+ 1714      00000000 
+ 1714      00000000 
+ 1715              		.section	.bss.irq_from_device,"aw",%nobits
+ 1716              		.align	2
+ 1717              		.set	.LANCHOR0,. + 0
+ 1720              	irq_from_device:
+ 1721 0000 00000000 		.space	4
+ 1722              		.section	.bss.sCalAcc,"aw",%nobits
+ 1723              		.align	2
+ 1724              		.set	.LANCHOR3,. + 0
+ 1727              	sCalAcc:
+ 1728 0000 00000000 		.space	540
+ 1728      00000000 
+ 1728      00000000 
+ 1728      00000000 
+ 1728      00000000 
+ 1729              		.section	.bss.sCalGyr,"aw",%nobits
+ 1730              		.align	2
+ 1731              		.set	.LANCHOR1,. + 0
+ 1734              	sCalGyr:
+ 1735 0000 00000000 		.space	308
+ARM GAS  /tmp/ccDhQfGk.s 			page 50
+
+
+ 1735      00000000 
+ 1735      00000000 
+ 1735      00000000 
+ 1735      00000000 
+ 1736              		.section	.bss.sGRV,"aw",%nobits
+ 1737              		.align	2
+ 1738              		.set	.LANCHOR4,. + 0
+ 1741              	sGRV:
+ 1742 0000 00000000 		.space	664
+ 1742      00000000 
+ 1742      00000000 
+ 1742      00000000 
+ 1742      00000000 
+ 1743              		.section	.bss.sRacc_data,"aw",%nobits
+ 1744              		.align	2
+ 1745              		.set	.LANCHOR6,. + 0
+ 1748              	sRacc_data:
+ 1749 0000 00000000 		.space	12
+ 1749      00000000 
+ 1749      00000000 
+ 1750              		.section	.bss.sRgyro_data,"aw",%nobits
+ 1751              		.align	2
+ 1752              		.set	.LANCHOR7,. + 0
+ 1755              	sRgyro_data:
+ 1756 0000 00000000 		.space	12
+ 1756      00000000 
+ 1756      00000000 
+ 1757              		.section	.bss.sRtemp_data,"aw",%nobits
+ 1758              		.align	1
+ 1759              		.set	.LANCHOR5,. + 0
+ 1762              	sRtemp_data:
+ 1763 0000 0000     		.space	2
+ 1764              		.section	.bss.sensors_on.10277,"aw",%nobits
+ 1765              		.set	.LANCHOR13,. + 0
+ 1768              	sensors_on.10277:
+ 1769 0000 00       		.space	1
+ 1770              		.section	.bss.timestamp_to_drop,"aw",%nobits
+ 1771              		.set	.LANCHOR9,. + 0
+ 1774              	timestamp_to_drop:
+ 1775 0000 00       		.space	1
+ 1776              		.section	.data.cfg_mounting_matrix,"aw",%progbits
+ 1777              		.align	2
+ 1778              		.set	.LANCHOR10,. + 0
+ 1781              	cfg_mounting_matrix:
+ 1782 0000 00000040 		.word	1073741824
+ 1783 0004 00000000 		.word	0
+ 1784 0008 00000000 		.word	0
+ 1785 000c 00000000 		.word	0
+ 1786 0010 00000040 		.word	1073741824
+ 1787 0014 00000000 		.word	0
+ 1788 0018 00000000 		.word	0
+ 1789 001c 00000000 		.word	0
+ 1790 0020 00000040 		.word	1073741824
+ 1791              		.section	.data.period_us,"aw",%progbits
+ 1792              		.align	2
+ 1793              		.set	.LANCHOR2,. + 0
+ 1796              	period_us:
+ARM GAS  /tmp/ccDhQfGk.s 			page 51
+
+
+ 1797 0000 204E0000 		.word	20000
+ 1798              		.section	.rodata.EXPECTED_WHOAMI,"a",%progbits
+ 1799              		.align	2
+ 1800              		.set	.LANCHOR11,. + 0
+ 1803              	EXPECTED_WHOAMI:
+ 1804 0000 95       		.byte	-107
+ 1805 0001 98       		.byte	-104
+ 1806 0002 02       		.byte	2
+ 1807 0003 03       		.byte	3
+ 1808              		.section	.rodata.doupdategyro.str1.4,"aMS",%progbits,1
+ 1809              		.align	2
+ 1810              	.LC0:
+ 1811 0000 4572726F 		.ascii	"Error while polling the icm207xx device\000"
+ 1811      72207768 
+ 1811      696C6520 
+ 1811      706F6C6C 
+ 1811      696E6720 
+ 1812              		.section	.rodata.icm207xx_run_selftest.str1.4,"aMS",%progbits,1
+ 1813              		.align	2
+ 1814              	.LC7:
+ 1815 0000 53656C66 		.ascii	"Self-test failure\000"
+ 1815      2D746573 
+ 1815      74206661 
+ 1815      696C7572 
+ 1815      6500
+ 1816              		.section	.rodata.icm207xx_sensor_configuration.str1.4,"aMS",%progbits,1
+ 1817              		.align	2
+ 1818              	.LC5:
+ 1819 0000 4572726F 		.ascii	"Error configuring ACC sensor\000"
+ 1819      7220636F 
+ 1819      6E666967 
+ 1819      7572696E 
+ 1819      67204143 
+ 1820 001d 000000   		.space	3
+ 1821              	.LC6:
+ 1822 0020 4572726F 		.ascii	"Error configuring GYR sensor\000"
+ 1822      7220636F 
+ 1822      6E666967 
+ 1822      7572696E 
+ 1822      67204759 
+ 1823              		.section	.rodata.icm207xx_sensor_setup.str1.4,"aMS",%progbits,1
+ 1824              		.align	2
+ 1825              	.LC1:
+ 1826 0000 4572726F 		.ascii	"Error reading WHOAMI\000"
+ 1826      72207265 
+ 1826      6164696E 
+ 1826      67205748 
+ 1826      4F414D49 
+ 1827 0015 000000   		.space	3
+ 1828              	.LC2:
+ 1829 0018 00       		.ascii	"\000"
+ 1830 0019 000000   		.space	3
+ 1831              	.LC3:
+ 1832 001c 436F756C 		.ascii	"Could not obtain chip info\000"
+ 1832      64206E6F 
+ 1832      74206F62 
+ 1832      7461696E 
+ARM GAS  /tmp/ccDhQfGk.s 			page 52
+
+
+ 1832      20636869 
+ 1833 0037 00       		.space	1
+ 1834              	.LC4:
+ 1835 0038 4572726F 		.ascii	"Error %d while setting-up icm207xx device\000"
+ 1835      72202564 
+ 1835      20776869 
+ 1835      6C652073 
+ 1835      65747469 
+ 1836              		.text
+ 1837              	.Letext0:
+ 1838              		.file 3 "Drivers/Invn/InvBool.h"
+ 1839              		.file 4 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/machine/_de
+ 1840              		.file 5 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_stdint
+ 1841              		.file 6 "Drivers/Invn/InvError.h"
+ 1842              		.file 7 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxCtrl.h"
+ 1843              		.file 8 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSerif.h"
+ 1844              		.file 9 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/lock.h"
+ 1845              		.file 10 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_types
+ 1846              		.file 11 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/lib/gcc/arm-none-eabi/7.3.1/incl
+ 1847              		.file 12 "/mnt/NData/Softwares/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/reent.
+ 1848              		.file 13 "Drivers/Invn/Devices/SensorTypes.h"
+ 1849              		.file 14 "Drivers/CMSIS/Include/core_cm4.h"
+ 1850              		.file 15 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/system_stm32f4xx.h"
+ 1851              		.file 16 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h"
+ 1852              		.file 17 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 1853              		.file 18 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
+ 1854              		.file 19 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 1855              		.file 20 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h"
+ 1856              		.file 21 "Inc/gyro.h"
+ 1857              		.file 22 "Inc/LibAlgo.h"
+ 1858              		.file 23 "Inc/timer.h"
+ 1859              		.file 24 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSelfTest.h"
+ 1860              		.file 25 "Drivers/Invn/Devices/Drivers/Icm207xx/Icm207xxSetup.h"
+ 1861              		.file 26 "<built-in>"
+ARM GAS  /tmp/ccDhQfGk.s 			page 53
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 gyro.c
+     /tmp/ccDhQfGk.s:18     .text.check_rc:0000000000000000 $t
+     /tmp/ccDhQfGk.s:24     .text.check_rc:0000000000000000 check_rc
+     /tmp/ccDhQfGk.s:44     .text.apply_mouting_matrix:0000000000000000 $t
+     /tmp/ccDhQfGk.s:50     .text.apply_mouting_matrix:0000000000000000 apply_mouting_matrix
+     /tmp/ccDhQfGk.s:127    .text.ext_interrupt_cb:0000000000000000 $t
+     /tmp/ccDhQfGk.s:134    .text.ext_interrupt_cb:0000000000000000 ext_interrupt_cb
+     /tmp/ccDhQfGk.s:153    .text.ext_interrupt_cb:000000000000000c $d
+     /tmp/ccDhQfGk.s:158    .text.spi_master_write_register:0000000000000000 $t
+     /tmp/ccDhQfGk.s:164    .text.spi_master_write_register:0000000000000000 spi_master_write_register
+     /tmp/ccDhQfGk.s:229    .text.spi_master_write_register:000000000000004c $d
+     /tmp/ccDhQfGk.s:234    .text.idd_io_hal_write_reg:0000000000000000 $t
+     /tmp/ccDhQfGk.s:240    .text.idd_io_hal_write_reg:0000000000000000 idd_io_hal_write_reg
+     /tmp/ccDhQfGk.s:267    .text.spi_master_read_register:0000000000000000 $t
+     /tmp/ccDhQfGk.s:273    .text.spi_master_read_register:0000000000000000 spi_master_read_register
+     /tmp/ccDhQfGk.s:340    .text.spi_master_read_register:0000000000000050 $d
+     /tmp/ccDhQfGk.s:345    .text.idd_io_hal_read_reg:0000000000000000 $t
+     /tmp/ccDhQfGk.s:351    .text.idd_io_hal_read_reg:0000000000000000 idd_io_hal_read_reg
+     /tmp/ccDhQfGk.s:378    .text.algorithms_init:0000000000000000 $t
+     /tmp/ccDhQfGk.s:384    .text.algorithms_init:0000000000000000 algorithms_init
+     /tmp/ccDhQfGk.s:462    .text.algorithms_init:0000000000000070 $d
+     /tmp/ccDhQfGk.s:471    .text.algorithms_process:0000000000000000 $t
+     /tmp/ccDhQfGk.s:477    .text.algorithms_process:0000000000000000 algorithms_process
+     /tmp/ccDhQfGk.s:813    .text.algorithms_process:0000000000000280 $d
+     /tmp/ccDhQfGk.s:825    .text.doupdategyro:0000000000000000 $t
+     /tmp/ccDhQfGk.s:832    .text.doupdategyro:0000000000000000 doupdategyro
+     /tmp/ccDhQfGk.s:984    .text.doupdategyro:00000000000000bc $d
+     /tmp/ccDhQfGk.s:999    .text.icm207xx_sensor_setup:0000000000000000 $t
+     /tmp/ccDhQfGk.s:1006   .text.icm207xx_sensor_setup:0000000000000000 icm207xx_sensor_setup
+     /tmp/ccDhQfGk.s:1140   .text.icm207xx_sensor_setup:00000000000000a8 $d
+     /tmp/ccDhQfGk.s:1152   .text.icm207xx_sensor_configuration:0000000000000000 $t
+     /tmp/ccDhQfGk.s:1159   .text.icm207xx_sensor_configuration:0000000000000000 icm207xx_sensor_configuration
+     /tmp/ccDhQfGk.s:1204   .text.icm207xx_sensor_configuration:0000000000000038 $d
+     /tmp/ccDhQfGk.s:1211   .text.icm207xx_run_selftest:0000000000000000 $t
+     /tmp/ccDhQfGk.s:1218   .text.icm207xx_run_selftest:0000000000000000 icm207xx_run_selftest
+     /tmp/ccDhQfGk.s:1291   .text.icm207xx_run_selftest:0000000000000048 $d
+     /tmp/ccDhQfGk.s:1297   .text.sensor_control:0000000000000000 $t
+     /tmp/ccDhQfGk.s:1304   .text.sensor_control:0000000000000000 sensor_control
+     /tmp/ccDhQfGk.s:1461   .text.sensor_control:00000000000000b0 $d
+     /tmp/ccDhQfGk.s:1468   .text.sensor_configure_odr:0000000000000000 $t
+     /tmp/ccDhQfGk.s:1475   .text.sensor_configure_odr:0000000000000000 sensor_configure_odr
+     /tmp/ccDhQfGk.s:1592   .text.sensor_configure_odr:0000000000000094 $d
+     /tmp/ccDhQfGk.s:1604   .text.gyroinit:0000000000000000 $t
+     /tmp/ccDhQfGk.s:1611   .text.gyroinit:0000000000000000 gyroinit
+     /tmp/ccDhQfGk.s:1693   .text.gyroinit:0000000000000054 $d
+     /tmp/ccDhQfGk.s:1702   .bss.chip_info:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1706   .bss.chip_info:0000000000000000 chip_info
+     /tmp/ccDhQfGk.s:1709   .bss.icm_device:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1713   .bss.icm_device:0000000000000000 icm_device
+     /tmp/ccDhQfGk.s:1716   .bss.irq_from_device:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1720   .bss.irq_from_device:0000000000000000 irq_from_device
+     /tmp/ccDhQfGk.s:1723   .bss.sCalAcc:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1727   .bss.sCalAcc:0000000000000000 sCalAcc
+     /tmp/ccDhQfGk.s:1730   .bss.sCalGyr:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1734   .bss.sCalGyr:0000000000000000 sCalGyr
+     /tmp/ccDhQfGk.s:1737   .bss.sGRV:0000000000000000 $d
+ARM GAS  /tmp/ccDhQfGk.s 			page 54
+
+
+     /tmp/ccDhQfGk.s:1741   .bss.sGRV:0000000000000000 sGRV
+     /tmp/ccDhQfGk.s:1744   .bss.sRacc_data:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1748   .bss.sRacc_data:0000000000000000 sRacc_data
+     /tmp/ccDhQfGk.s:1751   .bss.sRgyro_data:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1755   .bss.sRgyro_data:0000000000000000 sRgyro_data
+     /tmp/ccDhQfGk.s:1758   .bss.sRtemp_data:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1762   .bss.sRtemp_data:0000000000000000 sRtemp_data
+     /tmp/ccDhQfGk.s:1768   .bss.sensors_on.10277:0000000000000000 sensors_on.10277
+     /tmp/ccDhQfGk.s:1769   .bss.sensors_on.10277:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1774   .bss.timestamp_to_drop:0000000000000000 timestamp_to_drop
+     /tmp/ccDhQfGk.s:1775   .bss.timestamp_to_drop:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1777   .data.cfg_mounting_matrix:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1781   .data.cfg_mounting_matrix:0000000000000000 cfg_mounting_matrix
+     /tmp/ccDhQfGk.s:1792   .data.period_us:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1796   .data.period_us:0000000000000000 period_us
+     /tmp/ccDhQfGk.s:1799   .rodata.EXPECTED_WHOAMI:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1803   .rodata.EXPECTED_WHOAMI:0000000000000000 EXPECTED_WHOAMI
+     /tmp/ccDhQfGk.s:1809   .rodata.doupdategyro.str1.4:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1813   .rodata.icm207xx_run_selftest.str1.4:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1817   .rodata.icm207xx_sensor_configuration.str1.4:0000000000000000 $d
+     /tmp/ccDhQfGk.s:1824   .rodata.icm207xx_sensor_setup.str1.4:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+HAL_GPIO_WritePin
+HAL_SPI_Transmit
+HAL_SPI_Receive
+Algo_InvnCalibration_GyroCalibrationFxp_Init
+Algo_InvnCalibration_GyroCalibrationFxp_SetUserParam
+Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_Init
+Algo_InvnOrientation_BodyToWorldFrameFxp_Init
+Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_UpdateAcc
+Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_GetAccuracy
+Algo_InvnOrientation_BodyToWorldFrameFxp_UpdateAcc
+Algo_InvnCalibration_GyroCalibrationFxp_UpdateGyr
+Algo_InvnCalibration_GyroCalibrationFxp_GetUncalibrated
+Algo_InvnCalibration_GyroCalibrationFxp_GetBias
+Algo_InvnCalibration_GyroCalibrationFxp_GetCalibrated
+Algo_InvnCalibration_GyroCalibrationFxp_GetAccuracy
+Algo_InvnOrientation_BodyToWorldFrameFxp_UpdateGyr
+Algo_InvnOrientation_BodyToWorldFrameFxp_GetGameRotationVector
+inv_icm207xx_get_int_status
+inv_icm207xx_check_drdy
+inv_icm207xx_poll_fifo_data_setup
+inv_icm207xx_reset_fifo
+timer_clear_irq_timestamp
+timer_get_irq_timestamp
+inv_icm207xx_poll_fifo_data
+inv_icm207xx_get_whoami
+inv_icm207xx_get_chip_info
+inv_icm207xx_is_sensor_enabled
+inv_icm207xx_set_sensor_period
+inv_icm207xx_initialize
+inv_icm207xx_accel_fsr_2_reg
+inv_icm207xx_set_accel_fullscale
+inv_icm207xx_gyro_fsr_2_reg
+inv_icm207xx_set_gyro_fullscale
+inv_icm207xx_run_selftest
+ARM GAS  /tmp/ccDhQfGk.s 			page 55
+
+
+inv_icm207xx_get_st_bias
+inv_icm207xx_all_sensors_off
+inv_icm207xx_enable_sensor
+Algo_InvnCalibration_GyroCalibrationFxp_SetSamplingPeriod
+Algo_InvnCalibration_AccelCalibrationGyroOptionalFxp_SetSamplingPeriod
+Algo_InvnOrientation_BodyToWorldFrameFxp_SetGyrSamplingPeriod
+Algo_InvnOrientation_BodyToWorldFrameFxp_SetAccSamplingPeriod
+memset
+timer_configure_callback
