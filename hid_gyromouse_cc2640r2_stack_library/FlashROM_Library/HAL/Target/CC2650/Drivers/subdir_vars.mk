@@ -4,9 +4,9 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/hal/src/target/_common/hal_flash_wrapper.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/hal/src/target/_common/hal_rtc_wrapper.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/hal/src/target/_common/hal_trng_wrapper.c 
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/hal/src/target/_common/hal_flash_wrapper.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/hal/src/target/_common/hal_rtc_wrapper.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/hal/src/target/_common/hal_trng_wrapper.c 
 
 C_DEPS += \
 ./HAL/Target/CC2650/Drivers/hal_flash_wrapper.d \
@@ -29,8 +29,8 @@ C_DEPS__QUOTED += \
 "HAL/Target/CC2650/Drivers/hal_trng_wrapper.d" 
 
 C_SRCS__QUOTED += \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/hal/src/target/_common/hal_flash_wrapper.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/hal/src/target/_common/hal_rtc_wrapper.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/hal/src/target/_common/hal_trng_wrapper.c" 
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/hal/src/target/_common/hal_flash_wrapper.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/hal/src/target/_common/hal_rtc_wrapper.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/hal/src/target/_common/hal_trng_wrapper.c" 
 
 

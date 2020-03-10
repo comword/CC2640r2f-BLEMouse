@@ -4,11 +4,11 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 OPT_SRCS += \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/config/build_components.opt \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/config/build_components.opt \
 ../TOOLS/build_config.opt 
 
 C_SRCS += \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/common/cc26xx/onboard.c 
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/common/cc26xx/onboard.c 
 
 C_DEPS += \
 ./TOOLS/onboard.d 
@@ -23,10 +23,10 @@ C_DEPS__QUOTED += \
 "TOOLS/onboard.d" 
 
 OPT_SRCS__QUOTED += \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/config/build_components.opt" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/config/build_components.opt" \
 "../TOOLS/build_config.opt" 
 
 C_SRCS__QUOTED += \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/common/cc26xx/onboard.c" 
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/common/cc26xx/onboard.c" 
 
 

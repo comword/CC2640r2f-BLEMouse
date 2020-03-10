@@ -150,12 +150,12 @@
 		<link>
 			<name>Drivers/RF/RF.h</name>
 			<type>1</type>
-			<locationURI>copy_PARENT/source/ti/drivers/rf/RF.h</locationURI>
+			<locationURI>PARENT-2-SRC_BLE_DIR/ti/drivers/rf/RF.h</locationURI>
 		</link>
 		<link>
 			<name>Drivers/RF/RFCC26XX_singleMode.c</name>
 			<type>1</type>
-			<locationURI>copy_PARENT/source/ti/drivers/rf/RFCC26XX_singleMode.c</locationURI>
+			<locationURI>PARENT-2-SRC_BLE_DIR/ti/drivers/rf/RFCC26XX_singleMode.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/TRNG/TRNGCC26XX.c</name>
@@ -176,10 +176,6 @@
 		<variable>
 			<name>SRC_BLE_DIR</name>
 			<value>$%7BCOM_TI_SIMPLELINK_CC2640R2_SDK_INSTALL_DIR%7D/source/ti/blestack</value>
-		</variable>
-		<variable>
-			<name>copy_PARENT</name>
-			<value>$%7BTI_PRODUCTS_DIR%7D/simplelink_cc2640r2_sdk_2_20_00_49</value>
 		</variable>
 	</variableList>
 </projectDescription>

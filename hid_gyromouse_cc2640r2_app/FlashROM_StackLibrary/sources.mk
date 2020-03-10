@@ -124,15 +124,11 @@ GEN_OPTS__QUOTED :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 Application \
-Display \
 Drivers/ECC \
 Drivers/RF \
 Drivers/TRNG \
 ICall \
 ICallBLE \
-Invn/Devices/Drivers/Icm207xx \
-Invn/Devices \
-Invn/EmbUtils \
 PROFILES \
 Startup \
 TOOLS \

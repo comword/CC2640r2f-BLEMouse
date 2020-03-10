@@ -4,9 +4,9 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/icall/stack/ble_dispatch_JT.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/icall/stack/ble_dispatch_lite.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/icall/src/icall_lite_translation.c 
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/icall/stack/ble_dispatch_JT.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/icall/stack/ble_dispatch_lite.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/icall/src/icall_lite_translation.c 
 
 C_DEPS += \
 ./ICallBLE/ble_dispatch_JT.d \
@@ -29,8 +29,8 @@ C_DEPS__QUOTED += \
 "ICallBLE/icall_lite_translation.d" 
 
 C_SRCS__QUOTED += \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/icall/stack/ble_dispatch_JT.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/icall/stack/ble_dispatch_lite.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/icall/src/icall_lite_translation.c" 
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/icall/stack/ble_dispatch_JT.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/icall/stack/ble_dispatch_lite.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/icall/src/icall_lite_translation.c" 
 
 

@@ -4,10 +4,10 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/profiles/roles/gap.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/profiles/roles/gapbondmgr.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/host/gattservapp_util.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/host/sm_ecc.c 
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/profiles/roles/gap.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/profiles/roles/gapbondmgr.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/host/gattservapp_util.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/host/sm_ecc.c 
 
 C_DEPS += \
 ./PROFILES/gap.d \
@@ -34,9 +34,9 @@ C_DEPS__QUOTED += \
 "PROFILES/sm_ecc.d" 
 
 C_SRCS__QUOTED += \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/profiles/roles/gap.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/profiles/roles/gapbondmgr.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/host/gattservapp_util.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/host/sm_ecc.c" 
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/profiles/roles/gap.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/profiles/roles/gapbondmgr.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/host/gattservapp_util.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/host/sm_ecc.c" 
 
 

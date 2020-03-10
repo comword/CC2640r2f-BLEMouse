@@ -30,14 +30,14 @@
 #ifndef _INV_SENSOR_TYPES_H_
 #define _INV_SENSOR_TYPES_H_
 
-#include "Invn/InvExport.h"
+#include "InvExport.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <stdint.h>
-#include "Invn/InvBool.h"
+#include "InvBool.h"
 
 /** @brief Sensor type identifier definition
  */

@@ -4,8 +4,8 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/rom/r2/common_rom_init.c \
-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/rom/r2/rom_init.c 
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/rom/r2/common_rom_init.c \
+/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/rom/r2/rom_init.c 
 
 C_DEPS += \
 ./ROM/common_rom_init.d \
@@ -24,7 +24,7 @@ C_DEPS__QUOTED += \
 "ROM/rom_init.d" 
 
 C_SRCS__QUOTED += \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/rom/r2/common_rom_init.c" \
-"/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/rom/r2/rom_init.c" 
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/rom/r2/common_rom_init.c" \
+"/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/rom/r2/rom_init.c" 
 
 

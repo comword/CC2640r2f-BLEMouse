@@ -61,6 +61,7 @@
  *  ============================================================================
  */
 
+#include <CC2640R2_DEVBOARD.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -70,11 +71,6 @@
 #include <ti/devices/cc26x0r2/inc/hw_ints.h>
 #include <ti/devices/cc26x0r2/inc/hw_memmap.h>
 
-#include "CC2640R2_MOUSEBOARD.h"
-
-/*
- *  =============================== ADCBuf ===============================
- */
 #include <ti/drivers/ADCBuf.h>
 #include <ti/drivers/adcbuf/ADCBufCC26XX.h>
 
@@ -275,17 +271,17 @@ const CryptoCC26XX_Config CryptoCC26XX_config[CC2640R2_LAUNCHXL_CRYPTOCOUNT] = {
  */
 #include <ti/display/Display.h>
 #include <ti/display/DisplayUart.h>
-#include <Display/OLEDisplay.h>
+//#include <Display/OLEDisplay.h>
 
 #ifndef BOARD_DISPLAY_UART_STRBUF_SIZE
 #define BOARD_DISPLAY_UART_STRBUF_SIZE    128
 #endif
 
 DisplayUart_Object     displayUartObject;
-DisplayOLED_Object     displayOLEDObject;
+//DisplayOLED_Object     displayOLEDObject;
 
 static char uartStringBuf[BOARD_DISPLAY_UART_STRBUF_SIZE];
-static uint_least8_t OLEDDisplayBuf[128 * 64 / 8];
+//static uint_least8_t OLEDDisplayBuf[128 * 64 / 8];
 
 const DisplayUart_HWAttrs displayUartHWAttrs = {
     .uartIdx      = CC2640R2_LAUNCHXL_UART0,
@@ -294,7 +290,7 @@ const DisplayUart_HWAttrs displayUartHWAttrs = {
     .strBuf       = uartStringBuf,
     .strBufLen    = BOARD_DISPLAY_UART_STRBUF_SIZE,
 };
-
+/*
 const OLED_HWAttrs displayOLEDHWattrs = {
     .I2CIndex    = CC2640R2_LAUNCHXL_I2C0,
     .SDAPin      = CC2640R2_LCD_SDA,
@@ -302,7 +298,9 @@ const OLED_HWAttrs displayOLEDHWattrs = {
     .pixelWidth  = 128,
     .pixelHeight = 64,
     .displayBuf  = OLEDDisplayBuf,
-};
+};*/
+
+#define BOARD_DISPLAY_USE_LCD 0
 
 #ifndef BOARD_DISPLAY_USE_UART
 #define BOARD_DISPLAY_USE_UART 1
@@ -367,15 +365,16 @@ const uint_least8_t Display_count = 0;
  */
 GPIO_PinConfig gpioPinConfigs[] = {
     /* Input pins */
-    GPIOCC26XX_DIO_13 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,  /* Button 0 */
-    GPIOCC26XX_DIO_14 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,  /* Button 1 */
+    CC2640R2_LAUNCHXL_PIN_RBTN | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
+    CC2640R2_LAUNCHXL_PIN_CBTN | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
+    CC2640R2_LAUNCHXL_PIN_LBTN | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
 
     /* Output pins */
-    GPIOCC26XX_DIO_07 | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_LOW,  /* Green LED */
-    GPIOCC26XX_DIO_06 | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_LOW,  /* Red LED */
+    CC2640R2_LAUNCHXL_PIN_RLED | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_LOW,
+    CC2640R2_LAUNCHXL_PIN_BLED | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_LOW,
 
     /* SPI Flash CSN */
-    GPIOCC26XX_DIO_20 | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_HIGH,
+    //GPIOCC26XX_DIO_20 | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_HIGH,
 };
 
 /*
@@ -588,6 +587,7 @@ const PIN_Config BoardGpioInitTable[] = {
     CC2640R2_LAUNCHXL_SPI0_MOSI | PIN_INPUT_EN | PIN_PULLDOWN,                                            /* SPI master out - slave in */
     CC2640R2_LAUNCHXL_SPI0_MISO | PIN_INPUT_EN | PIN_PULLDOWN,                                            /* SPI master in - slave out */
     CC2640R2_LAUNCHXL_SPI0_CLK | PIN_INPUT_EN | PIN_PULLDOWN,                                             /* SPI clock */
+    CC2640R2_LAUNCHXL_SPI0_CSN | PIN_INPUT_EN | PIN_PULLUP,                                             /* SPI clock */
 
     PIN_TERMINATE
 };

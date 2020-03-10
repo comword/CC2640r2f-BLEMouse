@@ -72,6 +72,7 @@
 #include "board.h"
 
 #include "hidemukbd.h"
+#include "gyro.h"
 
 /*********************************************************************
  * MACROS
@@ -125,49 +126,45 @@
 // Connection Pause Peripheral time value (in seconds)
 #define DEFAULT_CONN_PAUSE_PERIPHERAL         10
 
-// Default passcode
-#define DEFAULT_PASSCODE                      0
-
-// Default GAP pairing mode
-#define DEFAULT_PAIRING_MODE                  GAPBOND_PAIRING_MODE_WAIT_FOR_REQ
-
-// Default MITM mode (TRUE to require passcode or OOB when pairing)
-#define DEFAULT_MITM_MODE                     TRUE
-
-// Default bonding mode, TRUE to bond
-#define DEFAULT_BONDING_MODE                  TRUE
-
-// Default GAP bonding I/O capabilities
-#define DEFAULT_IO_CAPABILITIES               GAPBOND_IO_CAP_NO_INPUT_NO_OUTPUT
-
 // Battery level is critical when it is less than this %
 #define DEFAULT_BATT_CRITICAL_LEVEL           6
 
+// Fast advertising interval in 625us units.
+#define DEFAULT_FAST_ADV_INTERVAL                       32
+
+// Duration of fast advertising duration in ms.
+#define DEFAULT_FAST_ADV_DURATION                       30000
+
+// Slow advertising interval in 625us units.
+#define DEFAULT_SLOW_ADV_INTERVAL                       1600
+
+// Slow advertising duration in ms (set to 0 for continuous advertising).
+#define DEFAULT_SLOW_ADV_DURATION                       0
+
 // Key bindings, can be modified to any HID value.
-//#ifndef CC2650_LAUNCHXL
-//#define KEY_UP_HID_BINDING                    HID_KEYBOARD_UP_ARROW
-//#define KEY_DOWN_HID_BINDING                  HID_KEYBOARD_DOWN_ARROW
-//#define KEY_SELECT_HID_BINDING                MOUSE_BUTTON_1
-//#define USE_HID_MOUSE
-//#endif // !CC2650_LAUNCHXL
-//#define KEY_LEFT_HID_BINDING                  HID_KEYBOARD_LEFT_ARROW
-//#define KEY_RIGHT_HID_BINDING                 HID_KEYBOARD_RIGHT_ARROW
+#define KEY_UP_HID_BINDING                    HID_KEYBOARD_UP_ARROW
+#define KEY_DOWN_HID_BINDING                  HID_KEYBOARD_DOWN_ARROW
+#define KEY_SELECT_HID_BINDING                MOUSE_BUTTON_1
+#define KEY_LEFT_HID_BINDING                  HID_KEYBOARD_LEFT_ARROW
+#define KEY_RIGHT_HID_BINDING                 HID_KEYBOARD_RIGHT_ARROW
 
 // Task configuration
 #define HIDEMUKBD_TASK_PRIORITY               1
 
 #ifndef HIDEMUKBD_TASK_STACK_SIZE
-#define HIDEMUKBD_TASK_STACK_SIZE             644
+#define HIDEMUKBD_TASK_STACK_SIZE             700
 #endif
 
 #define HIDEMUKBD_KEY_CHANGE_EVT              0x0001
+#define GYRO_MEAS_PERIODIC_EVT                Event_Id_01
 
 // Task Events
 #define HIDEMUKBD_ICALL_EVT                   ICALL_MSG_EVENT_ID // Event_Id_31
 #define HIDEMUKBD_QUEUE_EVT                   UTIL_QUEUE_EVENT_ID // Event_Id_30
 
 #define HIDEMUKBD_ALL_EVENTS                  (HIDEMUKBD_ICALL_EVT | \
-                                               HIDEMUKBD_QUEUE_EVT)
+                                               HIDEMUKBD_QUEUE_EVT | \
+                                               GYRO_MEAS_PERIODIC_EVT )
 
 /*********************************************************************
  * TYPEDEFS
@@ -208,10 +205,14 @@ static ICall_SyncHandle syncEvent;
 // Queue object used for app messages
 static Queue_Struct appMsg;
 static Queue_Handle appMsgQueue;
+static Clock_Struct GyroUpdateClock;
 
 // Task configuration
 Task_Struct hidEmuKbdTask;
 Char hidEmuKbdTaskStack[HIDEMUKBD_TASK_STACK_SIZE];
+
+// Profile state parameter.
+static gaprole_States_t gapProfileState = GAPROLE_INIT;
 
 // GAP Profile - Name attribute for SCAN RSP data
 static uint8_t scanData[] =
@@ -268,8 +269,6 @@ static hidDevCfg_t hidEmuKbdCfg =
   HID_FLAGS_REMOTE_WAKE               // HID feature flags
 };
 
-static uint8_t hidBootMouseEnabled = FALSE;
-
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
@@ -293,6 +292,9 @@ static uint8_t HidEmuKbd_receiveReport(uint8_t len, uint8_t *pData);
 static uint8_t HidEmuKbd_reportCB(uint8_t id, uint8_t type, uint16_t uuid,
                                   uint8_t oper, uint16_t *pLen, uint8_t *pData);
 static void HidEmuKbd_hidEventCB(uint8_t evt);
+static void GyroUpdateHandler(UArg a0);
+static bool toggleAdvertising(void);
+static void GryoSPICallback(xSensorEvent gyroevent);
 
 /*********************************************************************
  * PROFILE CALLBACKS
@@ -363,6 +365,8 @@ void HidEmuKbd_init(void)
   // Create an RTOS queue for message from profile to be sent to app.
   appMsgQueue = Util_constructQueue(&appMsg);
 
+  Util_constructClock(&GyroUpdateClock, GyroUpdateHandler, 100, 0, false, GYRO_MEAS_PERIODIC_EVT);
+
   // Setup the GAP
   VOID GAP_SetParamValue(TGAP_CONN_PAUSE_PERIPHERAL,
                          DEFAULT_CONN_PAUSE_PERIPHERAL);
@@ -409,10 +413,10 @@ void HidEmuKbd_init(void)
 
   // Setup the GAP Bond Manager
   {
-    uint8_t pairMode = DEFAULT_PAIRING_MODE;
-    uint8_t mitm = DEFAULT_MITM_MODE;
-    uint8_t ioCap = DEFAULT_IO_CAPABILITIES;
-    uint8_t bonding = DEFAULT_BONDING_MODE;
+      uint8_t pairMode = GAPBOND_PAIRING_MODE_WAIT_FOR_REQ;
+      uint8_t mitm = TRUE;
+      uint8_t ioCap = GAPBOND_IO_CAP_NO_INPUT_NO_OUTPUT;
+      uint8_t bonding = TRUE;
 
     GAPBondMgr_SetParameter(GAPBOND_PAIRING_MODE, sizeof(uint8_t), &pairMode);
     GAPBondMgr_SetParameter(GAPBOND_MITM_PROTECTION, sizeof(uint8_t), &mitm);
@@ -438,6 +442,8 @@ void HidEmuKbd_init(void)
 
   // Initialize keys on SmartRF06EB.
   Board_initKeys(HidEmuKbd_keyPressHandler);
+
+  //Gyro_init(GryoSPICallback);
 
   // Register with GAP for HCI/Host messages
   GAP_RegisterForMsgs(selfEntity);
@@ -669,59 +675,59 @@ static void HidEmuKbd_handleKeys(uint8_t shift, uint8_t keys)
   if (keys & KEY_UP)
   {
     // Key Press.
-    //HidEmuKbd_sendReport(KEY_UP_HID_BINDING);
+    HidEmuKbd_sendReport(KEY_UP_HID_BINDING);
 
     // Key Release.
     // NB: releasing a key press will not propagate a signal to this function,
     // so a "key release" is reported immediately afterwards here.
-    //HidEmuKbd_sendReport(KEY_NONE);
+    HidEmuKbd_sendReport(KEY_NONE);
   }
 
   if (keys & KEY_DOWN)
   {
     // Key Press.
-    //HidEmuKbd_sendReport(KEY_DOWN_HID_BINDING);
+    HidEmuKbd_sendReport(KEY_DOWN_HID_BINDING);
 
     // Key Release.
     // NB: releasing a key press will not propagate a signal to this function,
     // so a "key release" is reported immediately afterwards here.
-    //HidEmuKbd_sendReport(KEY_NONE);
+    HidEmuKbd_sendReport(KEY_NONE);
   }
 
   if (keys & KEY_SELECT)
   {
-    if (hidBootMouseEnabled)
-    {
+//    if (hidBootMouseEnabled)
+//    {
       // Key Press.
-      HidEmuKbd_sendMouseReport(MOUSE_BUTTON_1);
+      HidEmuKbd_sendMouseReport(KEY_SELECT_HID_BINDING);
 
       // Key Release.
       // NB: releasing a key press will not propagate a signal to this function,
       // so a "key release" is reported immediately afterwards here.
       HidEmuKbd_sendMouseReport(MOUSE_BUTTON_NONE);
-    }
+//    }
   }
 
   if (keys & KEY_LEFT)
   {
     // Key Press.
-    //HidEmuKbd_sendReport(KEY_LEFT_HID_BINDING);
+    HidEmuKbd_sendReport(KEY_LEFT_HID_BINDING);
 
     // Key Release.
     // NB: releasing a key press will not propagate a signal to this function,
     // so a "key release" is reported immediately afterwards here.
-    //HidEmuKbd_sendReport(KEY_NONE);
+    HidEmuKbd_sendReport(KEY_NONE);
   }
 
   if (keys & KEY_RIGHT)
   {
     // Key Press.
-    //HidEmuKbd_sendReport(KEY_RIGHT_HID_BINDING);
+    HidEmuKbd_sendReport(KEY_RIGHT_HID_BINDING);
 
     // Key Release
     // NB: releasing a key press will not propagate a signal to this function,
     // so a "key release" is reported immediately afterwards here.
-    //HidEmuKbd_sendReport(KEY_NONE);
+    HidEmuKbd_sendReport(KEY_NONE);
   }
 }
 
@@ -848,22 +854,26 @@ static uint8_t HidEmuKbd_reportCB(uint8_t id, uint8_t type, uint16_t uuid,
       *pLen = len;
     }
   }
-  // Notifications enabled
-  else if (oper == HID_DEV_OPER_ENABLE)
-  {
-    if (id == HID_RPT_ID_MOUSE_IN && type == HID_REPORT_TYPE_INPUT)
-    {
-      hidBootMouseEnabled = TRUE;
-    }
-  }
-  // Notifications disabled
-  else if (oper == HID_DEV_OPER_DISABLE)
-  {
-    if (id == HID_RPT_ID_MOUSE_IN && type == HID_REPORT_TYPE_INPUT)
-    {
-      hidBootMouseEnabled = FALSE;
-    }
-  }
+//  // Notifications enabled
+//  else if (oper == HID_DEV_OPER_ENABLE)
+//  {
+//    if (id == HID_RPT_ID_MOUSE_IN && type == HID_REPORT_TYPE_INPUT)
+//    {
+//#ifdef USE_HID_MOUSE
+//      hidBootMouseEnabled = TRUE;
+//#endif // USE_HID_MOUSE
+//    }
+//  }
+//  // Notifications disabled
+//  else if (oper == HID_DEV_OPER_DISABLE)
+//  {
+//    if (id == HID_RPT_ID_MOUSE_IN && type == HID_REPORT_TYPE_INPUT)
+//    {
+//#ifdef USE_HID_MOUSE
+//      hidBootMouseEnabled = FALSE;
+//#endif // USE_HID_MOUSE
+//    }
+//  }
 
   return status;
 }
@@ -879,6 +889,44 @@ static uint8_t HidEmuKbd_reportCB(uint8_t id, uint8_t type, uint16_t uuid,
  */
 static void HidEmuKbd_hidEventCB(uint8_t evt)
 {
+    if(evt == HID_DEV_GAPROLE_STATE_CHANGE_EVT) { //connected
+        gaprole_States_t newState;
+        HidDev_GetParameter(HIDDEV_GAPROLE_STATE, &newState);
+        if (gapProfileState == newState) {
+            return;
+        }
+        if(newState==GAPROLE_CONNECTED) {
+            uint8_t bondState;
+            HidDev_GetParameter(HIDDEV_GAPBOND_STATE, &bondState);
+            if (bondState == GAPBOND_PAIRING_STATE_BONDED)
+                Util_startClock(&GyroUpdateClock);
+        }
+        else if (gapProfileState == GAPROLE_CONNECTED &&
+                   newState != GAPROLE_CONNECTED)
+        {
+            // Stop periodic measurement of heart rate.
+            Util_stopClock(&GyroUpdateClock);
+
+            if (newState == GAPROLE_WAITING_AFTER_TIMEOUT)
+            {
+              // Link loss timeout-- use fast advertising
+              GAP_SetParamValue(TGAP_GEN_DISC_ADV_INT_MIN, DEFAULT_FAST_ADV_INTERVAL);
+              GAP_SetParamValue(TGAP_GEN_DISC_ADV_INT_MAX, DEFAULT_FAST_ADV_INTERVAL);
+              GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_FAST_ADV_DURATION);
+            }
+            else
+            {
+              // Else use slow advertising
+              GAP_SetParamValue(TGAP_GEN_DISC_ADV_INT_MIN, DEFAULT_SLOW_ADV_INTERVAL);
+              GAP_SetParamValue(TGAP_GEN_DISC_ADV_INT_MAX, DEFAULT_SLOW_ADV_INTERVAL);
+              GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_SLOW_ADV_DURATION);
+            }
+
+            // Enable advertising.
+            toggleAdvertising();
+        }
+        gapProfileState = newState;
+    }
   // Process enter/exit suspend or enter/exit boot mode
   return;
 }
@@ -910,6 +958,37 @@ static uint8_t HidEmuKbd_enqueueMsg(uint16_t event, uint8_t state)
   return FALSE;
 }
 
-
 /*********************************************************************
-*********************************************************************/
+ * @fn      toggleAdvertising
+ *
+ * @brief   Toggle advertising state.
+ *
+ * @param   none
+ *
+ * @return  status - TRUE if advertising, FALSE otherwise.
+ */
+static bool toggleAdvertising(void)
+{
+  uint8_t advState;
+
+  // Find the current GAP advertisement status.
+  GAPRole_GetParameter(GAPROLE_ADVERT_ENABLED, &advState);
+
+  // Get the opposite state.
+  advState = !advState;
+
+  // Change the GAP advertisement status to opposite of current status.
+  GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t),
+                       &advState);
+
+  return advState;
+}
+
+static void GyroUpdateHandler(UArg a0)
+{
+    Event_post(syncEvent, a0);
+}
+
+static void GryoSPICallback(xSensorEvent gyroevent)
+{
+}

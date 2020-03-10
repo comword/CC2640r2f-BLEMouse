@@ -2,7 +2,7 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-CG_TOOL_ROOT := /mnt/NData/Softwares/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.2.LTS
+CG_TOOL_ROOT := /Applications/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -178,7 +178,7 @@ hid_gyromouse_cc2640r2_stack_library.lib: $(OBJS)
 ifneq ($(strip $(ORDERED_OBJS)),)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: ARM Archiver'
-	"/mnt/NData/Softwares/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.2.LTS/bin/armar" r "hid_gyromouse_cc2640r2_stack_library.lib" $(ORDERED_OBJS)
+	"/Applications/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armar" r "hid_gyromouse_cc2640r2_stack_library.lib" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 endif
@@ -192,7 +192,7 @@ clean:
 	-@echo ' '
 
 pre-build:
-	-/mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/../../../tools/blestack/lib_search/lib_search         /mnt/Data/Getong/CC2640r2f-BLEMouse/hid_gyromouse_cc2640r2_stack_library/TOOLS/build_config.opt         /mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/blelib         /home/henorvell/workspace_v8/hid_gyromouse_cc2640r2_stack_library/FlashROM_Library/lib_linker.cmd         cc2640         /mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/../../../tools/blestack/lib_search/lib_search.xml         /mnt/NData/Softwares/ti/simplelink_cc2640r2_sdk_2_20_00_49/source/ti/blestack/symbols
+	-/Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/../../../tools/blestack/lib_search/lib_search         /Users/henorvell/workspace_v8/hid_gyromouse_cc2640r2_stack_library/TOOLS/build_config.opt         /Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/blelib         /Users/henorvell/workspace_v8/hid_gyromouse_cc2640r2_stack_library/FlashROM_Library/lib_linker.cmd         cc2640         /Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/../../../tools/blestack/lib_search/lib_search.xml         /Users/henorvell/ti/simplelink_cc2640r2_sdk_2_30_00_28/source/ti/blestack/symbols
 	-@echo ' '
 
 .PHONY: all clean dependents
