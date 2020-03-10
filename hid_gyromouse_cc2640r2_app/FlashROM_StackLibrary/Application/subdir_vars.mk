@@ -38,5 +38,3 @@ C_SRCS__QUOTED += \
 "../Application/gyro.c" \
 "../Application/hidemukbd.c" \
 "../Application/util.c" 
-
-

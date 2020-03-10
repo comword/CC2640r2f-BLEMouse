@@ -1,0 +1,87 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+C_SRCS += \
+../Application/board_key.c \
+../Application/gyro.c \
+../Application/hidemukbd.c \
+<<<<<<< HEAD:hid_gyromouse_cc2640r2_app/FlashROM_StackLibrary/Application/subdir_vars.mk
+../Application/util.c 
+
+=======
+../Application/mi2c.c \
+../Application/mpu9150.c \
+../Application/util.c 
+
+>>>>>>> b7c08ff32aa9a89b3157f4e8dcb818da8778c884:ble5_hid_gyromouse_app/FlashROM_StackLibrary/Application/subdir_vars.mk
+C_DEPS += \
+./Application/board_key.d \
+./Application/gyro.d \
+./Application/hidemukbd.d \
+<<<<<<< HEAD:hid_gyromouse_cc2640r2_app/FlashROM_StackLibrary/Application/subdir_vars.mk
+./Application/util.d 
+
+=======
+./Application/mi2c.d \
+./Application/mpu9150.d \
+./Application/util.d 
+
+>>>>>>> b7c08ff32aa9a89b3157f4e8dcb818da8778c884:ble5_hid_gyromouse_app/FlashROM_StackLibrary/Application/subdir_vars.mk
+OBJS += \
+./Application/board_key.obj \
+./Application/gyro.obj \
+./Application/hidemukbd.obj \
+<<<<<<< HEAD:hid_gyromouse_cc2640r2_app/FlashROM_StackLibrary/Application/subdir_vars.mk
+./Application/util.obj 
+
+OBJS__QUOTED += \
+"Application/board_key.obj" \
+"Application/gyro.obj" \
+"Application/hidemukbd.obj" \
+"Application/util.obj" 
+
+C_DEPS__QUOTED += \
+"Application/board_key.d" \
+"Application/gyro.d" \
+"Application/hidemukbd.d" \
+"Application/util.d" 
+
+=======
+./Application/mi2c.obj \
+./Application/mpu9150.obj \
+./Application/util.obj 
+
+OBJS__QUOTED += \
+"Application\board_key.obj" \
+"Application\gyro.obj" \
+"Application\hidemukbd.obj" \
+"Application\mi2c.obj" \
+"Application\mpu9150.obj" \
+"Application\util.obj" 
+
+C_DEPS__QUOTED += \
+"Application\board_key.d" \
+"Application\gyro.d" \
+"Application\hidemukbd.d" \
+"Application\mi2c.d" \
+"Application\mpu9150.d" \
+"Application\util.d" 
+
+>>>>>>> b7c08ff32aa9a89b3157f4e8dcb818da8778c884:ble5_hid_gyromouse_app/FlashROM_StackLibrary/Application/subdir_vars.mk
+C_SRCS__QUOTED += \
+"../Application/board_key.c" \
+"../Application/gyro.c" \
+"../Application/hidemukbd.c" \
+<<<<<<< HEAD:hid_gyromouse_cc2640r2_app/FlashROM_StackLibrary/Application/subdir_vars.mk
+"../Application/util.c" 
+
+
+=======
+"../Application/mi2c.c" \
+"../Application/mpu9150.c" \
+"../Application/util.c" 
+
+
+>>>>>>> b7c08ff32aa9a89b3157f4e8dcb818da8778c884:ble5_hid_gyromouse_app/FlashROM_StackLibrary/Application/subdir_vars.mk
